@@ -1,23 +1,33 @@
 package ObjectStructures
 
-import {
+import (
 	"github.com/gorilla/websocket"
-}
+)
 
 type RequestObject struct {
 	Purpose string `json:"purpose"`
 	Code    string `json:"code"`
 }
 
-type Client struct {
-    ID   string
-    Conn *websocket.Conn
-    Pool *Pool
+type client struct {
+	ID   string
+	Conn *websocket.Conn
+	Pool *Pool
 }
 
 type Pool struct {
-	Register chan *Client
-	Unregister chan *Client
-	Clients map[*Client]bool
+	UserJoin  chan *client
+	UserLeave chan *client
+	Clients   map[*client]bool
 	Broadcast chan Message
+}
+
+type Message struct {
+	Type int      `json:"type"`
+	Data []string `json:"data"`
+}
+
+type HighScoreStruct struct {
+	PlayerName string
+	Time       int64
 }

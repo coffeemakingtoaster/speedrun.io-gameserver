@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
+	PoolHelper "gameserver.speedrun.io/Helper/Poolhelper"
 )
 
 func ValidateUser(uID string) bool {
@@ -13,9 +13,10 @@ func ValidateUser(uID string) bool {
 	return true
 }
 
-func InputHandler(conn *websocket.Conn) {
-	message := SocketHelper.Reader(conn)
-	fmt.Println(message)
-	conn.Close()
-	fmt.Println("discornnected from client")
+func InitInputHandler(conn *websocket.Conn) {
+	c := &PoolHelper.Client{
+		Conn: conn,
+		Pool: nil,
+	}
+	c.HandleInput()
 }

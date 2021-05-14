@@ -28,7 +28,7 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	if userHelper.ValidateUser(parsedRequest.Code) {
 		fmt.Println("uID has been validated. Progressing")
 		SocketHelper.Sender(socketConn, "Credentials have been confirmed")
-		userHelper.InputHandler(socketConn)
+		userHelper.InitInputHandler(socketConn)
 	}
 
 }

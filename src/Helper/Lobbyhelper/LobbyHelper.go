@@ -1,0 +1,5 @@
+package LobbyHelper
+
+func CreateLobby() {
+
+}

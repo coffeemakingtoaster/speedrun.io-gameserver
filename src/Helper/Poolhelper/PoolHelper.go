@@ -6,10 +6,19 @@ import (
 	"log"
 	"strconv"
 
+	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
+	LobbyHelper "gameserver.speedrun.io/Helper/Lobbyhelper"
 	objectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
 	"github.com/gorilla/websocket"
 )
+
+type Client struct {
+	PlayerName string
+	ID         string
+	Conn       *websocket.Conn
+	Pool       *Pool
+}
 
 type Pool struct {
 	UserJoin    chan *Client
@@ -18,13 +27,6 @@ type Pool struct {
 	Broadcast   chan objectStructures.Message
 	TimeList    map[int]objectStructures.HighScoreStruct
 	TimeListSet chan map[int]objectStructures.HighScoreStruct
-}
-
-type Client struct {
-	PlayerName string
-	ID         string
-	Conn       *websocket.Conn
-	Pool       *Pool
 }
 
 //creates new pool
@@ -45,32 +47,20 @@ func (pool *Pool) Start() {
 			pool.Clients[client] = true
 			fmt.Println("Size of Connection Pool: ", len(pool.Clients))
 			for client, _ := range pool.Clients {
-				m, err := json.Marshal(objectStructures.Message{Type: 1, Data: []string{"User joined..."}})
-				if err != nil {
-					log.Fatal("Sending response failed due to an ")
-				}
-				SocketHelper.Sender(client.Conn, string(m))
+				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User joined..."}})
 			}
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients, client)
 			fmt.Println("Size of Connection Pool: ", len(pool.Clients))
 			for client, _ := range pool.Clients {
-				m, err := json.Marshal(objectStructures.Message{Type: 1, Data: []string{"User Disconnected..."}})
-				if err != nil {
-					log.Fatal("Sending response failed due to an ")
-				}
-				SocketHelper.Sender(client.Conn, string(m))
+				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User Disconnected..."}})
 			}
 			break
 		case message := <-pool.Broadcast:
-			fmt.Println("Sending message to all clients in Pool")
 			for client, _ := range pool.Clients {
-				m, err := json.Marshal(message)
-				if err != nil {
-					log.Fatal("Sending response failed due to an ")
-				}
-				SocketHelper.Sender(client.Conn, string(m))
+				fmt.Println("Sending message in loop")
+				SocketHelper.Sender(client.Conn, message)
 			}
 		case timeList := <-pool.TimeListSet:
 			for index, element := range timeList {
@@ -80,34 +70,74 @@ func (pool *Pool) Start() {
 	}
 }
 
-func (c *Client) HandleInput() {
+func (c *Client) HandleInput(poolList map[string]Pool) {
+
 	defer func() {
+		log.Println("user left")
 		c.Pool.UserLeave <- c
 		c.Conn.Close()
 	}()
 
 	for {
+		fmt.Println("inputhandler running")
 		messageType, p, err := c.Conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		message := objectStructures.Message{Type: messageType, Data: GenerateMessage(p, c)}
-		c.Pool.Broadcast <- message
-		fmt.Printf("Message Received: %+v\n", message)
+		fmt.Println(string(p))
+		decodedPayload := objectStructures.Message{}
+		json.Unmarshal(p, &decodedPayload)
+		fmt.Println(decodedPayload)
+		//if player is not in room
+		if c.Pool == nil {
+			fmt.Println("Player is not in room")
+			//create room if no roomID was passed
+			if decodedPayload.Data == nil {
+				newRoom := NewPool()
+				go newRoom.Start()
+				c.Pool = *&newRoom
+				Id := LobbyHelper.GenerateRoomID()
+				for {
+					if _, ok := poolList[Id]; ok {
+						Id = LobbyHelper.GenerateRoomID()
+					} else {
+						break
+					}
+				}
+				fmt.Println("RoomID: " + Id)
+				poolList[Id] = *newRoom
+				fmt.Println("created new room")
+				c.Pool.UserJoin <- c
+			} else {
+				fmt.Println("joining Room")
+				if roomPool, b := poolList[decodedPayload.Data[0]]; b {
+					c.Pool = &roomPool
+					c.Pool.UserJoin <- c
+					fmt.Println("joined room")
+				} else {
+					ErrorHelper.InvalidRoomIDError(c.Conn)
+
+				}
+			}
+		} else {
+			message := objectStructures.Message{Type: messageType, Data: GenerateMessage(p, c)}
+			c.Pool.Broadcast <- message
+			fmt.Println("Send broadcast")
+		}
 	}
 }
 
 func GenerateMessage(payload []byte, c *Client) []string {
 	decodedPayload := objectStructures.Message{}
-	json.Unmarshal(payload, decodedPayload)
+	json.Unmarshal(payload, &decodedPayload)
 	if decodedPayload.Type == 1 {
 		currentTimes := c.Pool.TimeList
 		for index, element := range currentTimes {
 			if element.PlayerName == c.PlayerName {
 				time, err := strconv.Atoi(decodedPayload.Data[0])
 				if err != nil {
-					log.Fatal("Error! Package contained invalid time")
+					log.Println("Error! Package contained invalid time")
 				}
 				currentTimes[index] = objectStructures.HighScoreStruct{
 					PlayerName: c.PlayerName,
@@ -124,5 +154,16 @@ func GenerateMessage(payload []byte, c *Client) []string {
 		}
 		return returnMessage
 	}
-	return []string{}
+	return []string{"we received your message and don´t really care"}
+}
+
+func InitInputHandler(conn *websocket.Conn, m map[string]Pool) {
+	c := &Client{
+		PlayerName: "testuser",
+		ID:         "1234",
+		Conn:       conn,
+		Pool:       nil,
+	}
+	SocketHelper.Sender(c.Conn, objectStructures.Message{Type: 1, Data: []string{"credentials confirmed"}})
+	c.HandleInput(m)
 }

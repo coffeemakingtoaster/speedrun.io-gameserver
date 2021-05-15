@@ -1,8 +1,13 @@
-package errorHelper
+package ErrorHelper
 
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/websocket"
+
+	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
+	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
 )
 
 func InvalidRouteError(w http.ResponseWriter, r *http.Request) {
@@ -15,4 +20,8 @@ func ConnectionNotWebsocketError(w http.ResponseWriter, r *http.Request) {
 
 func InvalidRequestError(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Error: The request is invalid in this context")
+}
+
+func InvalidRoomIDError(conn *websocket.Conn) {
+	SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
 }

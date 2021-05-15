@@ -10,13 +10,18 @@
     <h2>Hello World</h2>
 
     <script>
-        let socket = new WebSocket("ws://127.0.0.1:8080/ws");
-        console.log("Attempting Connection...");
+        socket = new WebSocket("ws://127.0.0.1:8080/ws")
 
         socket.onopen = () => {
             console.log("Successfully Connected");
-            socket.send(JSON.stringify({"purpose":"test","code":"LOBBYCODE"}))
+            socket.send(JSON.stringify({"type":1,"data":"LOBBYCODE"}))
         };
+
+
+        socket.onmessage = MessageEvent => {
+          let x = MessageEvent.data
+          console.log("received message" + x)
+        }
         
         socket.onclose = event => {
             console.log("Socket Closed Connection: ", event);
@@ -27,6 +32,24 @@
             console.log("Socket Error: ", error);
         };
 
+        function sendrequest(){
+          console.log("send request")
+          socket.send(JSON.stringify({"type":2,"data":"LOBBYCODE"}))
+        }
+
+        function joinLobby(){
+          code = document.getElementById("lobbycode").value
+          socket.send(JSON.stringify({"type":1,"data":[code]}))
+        }
+
+        function openSocket(){
+          this.socket =  new WebSocket("ws://127.0.0.1:8080/ws")
+        }
+
     </script>
+    <button onclick="sendrequest()">Dummy request</button>
+    <br>
+    LobbyCode: <input type="text" id="lobbycode" value="breh">
+    <button onclick="joinLobby()">Dummy request</button>
   </body>
 </html>

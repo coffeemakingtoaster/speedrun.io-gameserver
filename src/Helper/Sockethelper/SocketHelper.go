@@ -1,10 +1,13 @@
 package SocketHelper
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+
+	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 
 	"github.com/gorilla/websocket"
 )
@@ -30,6 +33,7 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 
 }
 
+/*
 func Reader(conn *websocket.Conn) string {
 	for {
 		// read in a message
@@ -49,9 +53,12 @@ func Reader(conn *websocket.Conn) string {
 		return string(p)
 	}
 }
+*/
 
-func Sender(conn *websocket.Conn, message string) {
-	err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+func Sender(conn *websocket.Conn, payload ObjectStructures.Message) {
+	m, err := json.Marshal(payload)
+	fmt.Println("Sending out " + string(m))
+	err = conn.WriteJSON(payload)
 	if err != nil {
 		fmt.Println("Error: Cannot send to client")
 	}

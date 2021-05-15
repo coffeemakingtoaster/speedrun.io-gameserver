@@ -8,30 +8,38 @@ import (
 	"log"
 	"net/http"
 
-	errorHelper "gameserver.speedrun.io/Helper/Errorhelper"
+	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
+	PoolHelper "gameserver.speedrun.io/Helper/Poolhelper"
 	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
 	userHelper "gameserver.speedrun.io/Helper/Userhelper"
 )
 
+var roomList map[string]PoolHelper.Pool
+
 func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	var socketConn, err = SocketHelper.WsEndpoint(w, r)
 	if err != nil {
-		errorHelper.ConnectionNotWebsocketError(w, r)
+		ErrorHelper.ConnectionNotWebsocketError(w, r)
 		return
 	}
-	message := SocketHelper.Reader(socketConn)
+	_, p, err := socketConn.ReadMessage()
+	var message string
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		message = string(p)
+	}
 	fmt.Println("Received message: " + message + " from client")
 	parsedRequest := ObjectStructures.RequestObject{}
 	err = json.Unmarshal([]byte(message), &parsedRequest)
 	if err != nil || parsedRequest.Purpose != "Auth" {
-		errorHelper.InvalidRequestError(w, r)
+		ErrorHelper.InvalidRequestError(w, r)
 	}
 	//if validuser continue connection, else close socket
 	if userHelper.ValidateUser(parsedRequest.Code) {
 		fmt.Println("uID has been validated. Progressing")
-		SocketHelper.Sender(socketConn, "Credentials have been confirmed")
-		userHelper.InitInputHandler(socketConn)
+		PoolHelper.InitInputHandler(socketConn, roomList)
 	} else {
 		socketConn.Close()
 	}
@@ -39,12 +47,13 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func setupRoutes() {
-	http.HandleFunc("/", errorHelper.InvalidRouteError)
+	http.HandleFunc("/", ErrorHelper.InvalidRouteError)
 	http.HandleFunc("/ws", handleWebsocketInput)
 }
 
 func main() {
+	roomList = make(map[string]PoolHelper.Pool)
 	fmt.Println("Server init started")
 	setupRoutes()
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println(http.ListenAndServe(":8080", nil))
 }

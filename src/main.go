@@ -1,7 +1,7 @@
 package main
 
 //main package
-
+//for the webserver
 import (
 	"encoding/json"
 	"fmt"

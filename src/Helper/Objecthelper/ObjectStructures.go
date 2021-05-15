@@ -10,9 +10,10 @@ type RequestObject struct {
 }
 
 type client struct {
-	ID   string
-	Conn *websocket.Conn
-	Pool *Pool
+	PlayerName string
+	ID         string
+	Conn       *websocket.Conn
+	Pool       *Pool
 }
 
 type Pool struct {

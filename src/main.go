@@ -27,10 +27,13 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	if err != nil || parsedRequest.Purpose != "Auth" {
 		errorHelper.InvalidRequestError(w, r)
 	}
+	//if validuser continue connection, else close socket
 	if userHelper.ValidateUser(parsedRequest.Code) {
 		fmt.Println("uID has been validated. Progressing")
 		SocketHelper.Sender(socketConn, "Credentials have been confirmed")
 		userHelper.InitInputHandler(socketConn)
+	} else {
+		socketConn.Close()
 	}
 
 }

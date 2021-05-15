@@ -42,14 +42,17 @@
           socket.send(JSON.stringify({"type":1,"data":[code]}))
         }
 
-        function openSocket(){
-          this.socket =  new WebSocket("ws://127.0.0.1:8080/ws")
+        function sendHighscore(){
+          console.log("sending highscore")
+          socket.send(JSON.stringify({"type":1,"data":["69420"]}))
         }
+
 
     </script>
     <button onclick="sendrequest()">Dummy request</button>
     <br>
     LobbyCode: <input type="text" id="lobbycode" value="breh">
-    <button onclick="joinLobby()">Dummy request</button>
+    <button onclick="joinLobby()">Join Lobby</button>
+    <button onclick="sendHighscore()">send Highscore</button>
   </body>
 </html>

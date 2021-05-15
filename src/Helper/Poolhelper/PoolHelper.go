@@ -26,16 +26,18 @@ type Pool struct {
 	Clients     map[*Client]bool
 	Broadcast   chan objectStructures.Message
 	TimeList    map[int]objectStructures.HighScoreStruct
-	TimeListSet chan map[int]objectStructures.HighScoreStruct
+	TimeListSet chan objectStructures.HighScoreStruct
 }
 
 //creates new pool
 func NewPool() *Pool {
 	return &Pool{
-		UserJoin:  make(chan *Client),
-		UserLeave: make(chan *Client),
-		Clients:   make(map[*Client]bool),
-		Broadcast: make(chan objectStructures.Message),
+		UserJoin:    make(chan *Client),
+		UserLeave:   make(chan *Client),
+		Clients:     make(map[*Client]bool),
+		Broadcast:   make(chan objectStructures.Message),
+		TimeList:    make(map[int]objectStructures.HighScoreStruct),
+		TimeListSet: make(chan objectStructures.HighScoreStruct),
 	}
 }
 
@@ -62,10 +64,34 @@ func (pool *Pool) Start() {
 				fmt.Println("Sending message in loop")
 				SocketHelper.Sender(client.Conn, message)
 			}
-		case timeList := <-pool.TimeListSet:
-			for index, element := range timeList {
+		case userToUpdate := <-pool.TimeListSet:
+			fmt.Println("Updating Pool")
+			foundUser := false
+			for index, element := range pool.TimeList {
 				pool.TimeList[index] = element
 			}
+			for index, element := range pool.TimeList {
+				if element.PlayerName == userToUpdate.PlayerName {
+					pool.TimeList[index] = userToUpdate
+					foundUser = true
+					break
+				}
+			}
+			if !foundUser {
+				fmt.Println("User not found in Highscore List. Adding Player to the List")
+				pool.TimeList[len(pool.TimeList)+1] = userToUpdate
+			}
+			fmt.Println(pool.TimeList)
+			var returnMessage []string
+			for _, element := range pool.TimeList {
+				returnMessage = append(returnMessage, element.PlayerName)
+				returnMessage = append(returnMessage, strconv.FormatInt(element.Time, 10))
+			}
+			fmt.Println(returnMessage)
+			for client, _ := range pool.Clients {
+				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: returnMessage})
+			}
+			break
 		}
 	}
 }
@@ -117,7 +143,6 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 					fmt.Println("joined room")
 				} else {
 					ErrorHelper.InvalidRoomIDError(c.Conn)
-
 				}
 			}
 		} else {
@@ -132,27 +157,18 @@ func GenerateMessage(payload []byte, c *Client) []string {
 	decodedPayload := objectStructures.Message{}
 	json.Unmarshal(payload, &decodedPayload)
 	if decodedPayload.Type == 1 {
-		currentTimes := c.Pool.TimeList
-		for index, element := range currentTimes {
-			if element.PlayerName == c.PlayerName {
-				time, err := strconv.Atoi(decodedPayload.Data[0])
-				if err != nil {
-					log.Println("Error! Package contained invalid time")
-				}
-				currentTimes[index] = objectStructures.HighScoreStruct{
-					PlayerName: c.PlayerName,
-					Time:       int64(time),
-				}
-				break
-			}
+		fmt.Println("Updating Highscorelist")
+		time, err := strconv.Atoi(decodedPayload.Data[0])
+		if err != nil {
+			return nil
 		}
-		c.Pool.TimeListSet <- currentTimes
-		var returnMessage []string
-		for _, element := range currentTimes {
-			returnMessage = append(returnMessage, element.PlayerName)
-			returnMessage = append(returnMessage, strconv.FormatInt(element.Time, 10))
+		data := objectStructures.HighScoreStruct{
+			PlayerName: "proplayer123",
+			Time:       int64(time),
 		}
-		return returnMessage
+		c.Pool.TimeListSet <- data
+
+		return []string{"we received your highscore and don´t really care"}
 	}
 	return []string{"we received your message and don´t really care"}
 }

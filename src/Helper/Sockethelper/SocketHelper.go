@@ -1,9 +1,7 @@
 package SocketHelper
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -55,9 +53,8 @@ func Reader(conn *websocket.Conn) string {
 */
 
 func Sender(conn *websocket.Conn, payload ObjectStructures.Message) error {
-	m, err := json.Marshal(payload)
-	fmt.Println("Sending out " + string(m))
-	err = conn.WriteJSON(payload)
+	//m, err := json.Marshal(payload)
+	err := conn.WriteJSON(payload)
 	if err != nil {
 		return err
 	}

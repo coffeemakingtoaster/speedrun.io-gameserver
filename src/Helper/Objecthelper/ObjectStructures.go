@@ -32,3 +32,12 @@ type HighScoreStruct struct {
 	PlayerName string
 	Time       int64
 }
+
+type PlayerStats struct {
+	PlayerName string `json:"Playername"`
+	PositionX  int    `json:"x"`
+	PositionY  int    `json:"y"`
+	VelocityX  int    `json:"xVel"`
+	VelocityY  int    `json:"yVel"`
+	IsDashing  bool   `json:"isDashing"`
+}

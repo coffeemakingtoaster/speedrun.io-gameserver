@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
 
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
@@ -23,5 +24,20 @@ func InvalidRequestError(w http.ResponseWriter, r *http.Request) {
 }
 
 func InvalidRoomIDError(conn *websocket.Conn) {
-	SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
+	err := SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
+	if err != nil {
+		OutputToConsole("Error", "Message could not be send")
+	}
+}
+
+func OutputToConsole(mode string, message string) {
+	c := color.New(color.FgWhite)
+	if mode == "Error" {
+		c = color.New(color.FgRed)
+	} else if mode == "Warning" {
+		c = color.New(color.FgYellow)
+	} else if mode == "Update" {
+		c = color.New(color.FgGreen)
+	}
+	c.Println("[ " + mode + " ]: " + message)
 }

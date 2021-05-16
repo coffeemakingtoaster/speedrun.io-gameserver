@@ -4,7 +4,6 @@ package main
 //for the webserver
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -29,11 +28,10 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	_, p, err := socketConn.ReadMessage()
 	var message string
 	if err != nil {
-		fmt.Println(err)
+		ErrorHelper.OutputToConsole("Error", err.Error())
 	} else {
 		message = string(p)
 	}
-	fmt.Println("Received message: " + message + " from client")
 	parsedRequest := ObjectStructures.Message{}
 	err = json.Unmarshal([]byte(message), &parsedRequest)
 	if err != nil || parsedRequest.Type != 0 {
@@ -41,7 +39,7 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	}
 	//if validuser continue connection, else close socket
 	if userHelper.ValidateUser(parsedRequest.Data[0]) {
-		fmt.Println("uID has been validated. Progressing")
+		ErrorHelper.OutputToConsole("Update", " valid Player with name "+parsedRequest.Data[0]+"has connected ")
 		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Data[0])
 	} else {
 		socketConn.Close()
@@ -63,8 +61,9 @@ func main() {
 	newRoom := PoolHelper.NewPool()
 	go newRoom.Start()
 	roomList["devTest"] = *newRoom
-	fmt.Println("Server init started")
+	ErrorHelper.OutputToConsole("Update", "initializing server...")
 	setupRoutes(router)
+	ErrorHelper.OutputToConsole("Update", "Server online")
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 	log.Println(http.ListenAndServe(":8080", handlers.CORS(corsObj)(router)))
 }

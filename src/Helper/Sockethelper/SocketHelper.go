@@ -24,11 +24,10 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 	// connection
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Println()
 		return nil, errors.New("Something went wrong")
 	}
 	// helpful log statement to show connections
-	log.Println("Client Connected")
 	return ws, nil
 
 }
@@ -55,11 +54,12 @@ func Reader(conn *websocket.Conn) string {
 }
 */
 
-func Sender(conn *websocket.Conn, payload ObjectStructures.Message) {
+func Sender(conn *websocket.Conn, payload ObjectStructures.Message) error {
 	m, err := json.Marshal(payload)
 	fmt.Println("Sending out " + string(m))
 	err = conn.WriteJSON(payload)
 	if err != nil {
-		fmt.Println("Error: Cannot send to client")
+		return err
 	}
+	return nil
 }

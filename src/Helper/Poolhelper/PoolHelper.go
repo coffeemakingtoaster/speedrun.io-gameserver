@@ -146,9 +146,12 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 				}
 			}
 		} else {
-			message := objectStructures.Message{Type: messageType, Data: GenerateMessage(p, c)}
-			c.Pool.Broadcast <- message
-			fmt.Println("Send broadcast")
+			payload := GenerateMessage(p, c)
+			if payload != nil {
+				message := objectStructures.Message{Type: messageType, Data: payload}
+				c.Pool.Broadcast <- message
+				fmt.Println("Send broadcast")
+			}
 		}
 	}
 }
@@ -168,7 +171,7 @@ func GenerateMessage(payload []byte, c *Client) []string {
 		}
 		c.Pool.TimeListSet <- data
 
-		return []string{"we received your highscore and don´t really care"}
+		return nil
 	}
 	return []string{"we received your message and don´t really care"}
 }

@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+
 	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 	PoolHelper "gameserver.speedrun.io/Helper/Poolhelper"
@@ -46,14 +49,22 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func setupRoutes() {
-	http.HandleFunc("/", ErrorHelper.InvalidRouteError)
-	http.HandleFunc("/ws", handleWebsocketInput)
+func setupRoutes(router *mux.Router) {
+	router.HandleFunc("/", ErrorHelper.InvalidRouteError)
+	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		handleWebsocketInput(w, r)
+	})
 }
 
 func main() {
+	router := mux.NewRouter()
+
 	roomList = make(map[string]PoolHelper.Pool)
+	newRoom := PoolHelper.NewPool()
+	go newRoom.Start()
+	roomList["devTest"] = *newRoom
 	fmt.Println("Server init started")
-	setupRoutes()
-	log.Println(http.ListenAndServe(":8080", nil))
+	setupRoutes(router)
+	corsObj := handlers.AllowedOrigins([]string{"*"})
+	log.Println(http.ListenAndServe(":8080", handlers.CORS(corsObj)(router)))
 }

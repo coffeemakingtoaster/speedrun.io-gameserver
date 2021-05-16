@@ -163,7 +163,7 @@ func GenerateMessage(payload []byte, c *Client) []string {
 			return nil
 		}
 		data := objectStructures.HighScoreStruct{
-			PlayerName: "proplayer123",
+			PlayerName: c.PlayerName,
 			Time:       int64(time),
 		}
 		c.Pool.TimeListSet <- data
@@ -173,9 +173,9 @@ func GenerateMessage(payload []byte, c *Client) []string {
 	return []string{"we received your message and don´t really care"}
 }
 
-func InitInputHandler(conn *websocket.Conn, m map[string]Pool) {
+func InitInputHandler(conn *websocket.Conn, m map[string]Pool, username string) {
 	c := &Client{
-		PlayerName: "testuser",
+		PlayerName: username,
 		ID:         "1234",
 		Conn:       conn,
 		Pool:       nil,

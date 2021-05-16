@@ -14,7 +14,7 @@
 
         socket.onopen = () => {
             console.log("Successfully Connected");
-            socket.send(JSON.stringify({"type":1,"data":"LOBBYCODE"}))
+            socket.send(JSON.stringify({"type":0,"data": [Math.random().toString(36).substring(7)]}))
         };
 
 
@@ -43,8 +43,9 @@
         }
 
         function sendHighscore(){
+          score = document.getElementById("time").value
           console.log("sending highscore")
-          socket.send(JSON.stringify({"type":1,"data":["69420"]}))
+          socket.send(JSON.stringify({"type":1,"data":[score.toString()]}))
         }
 
 
@@ -53,6 +54,8 @@
     <br>
     LobbyCode: <input type="text" id="lobbycode" value="breh">
     <button onclick="joinLobby()">Join Lobby</button>
+    <br>
+    time: <input type="number" id="time" value="1000">
     <button onclick="sendHighscore()">send Highscore</button>
   </body>
 </html>

@@ -31,15 +31,15 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 		message = string(p)
 	}
 	fmt.Println("Received message: " + message + " from client")
-	parsedRequest := ObjectStructures.RequestObject{}
+	parsedRequest := ObjectStructures.Message{}
 	err = json.Unmarshal([]byte(message), &parsedRequest)
-	if err != nil || parsedRequest.Purpose != "Auth" {
+	if err != nil || parsedRequest.Type != 0 {
 		ErrorHelper.InvalidRequestError(w, r)
 	}
 	//if validuser continue connection, else close socket
-	if userHelper.ValidateUser(parsedRequest.Code) {
+	if userHelper.ValidateUser(parsedRequest.Data[0]) {
 		fmt.Println("uID has been validated. Progressing")
-		PoolHelper.InitInputHandler(socketConn, roomList)
+		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Data[0])
 	} else {
 		socketConn.Close()
 	}

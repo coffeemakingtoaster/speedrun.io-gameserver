@@ -95,6 +95,7 @@ func (pool *Pool) Start() {
 			for client, _ := range pool.Clients {
 				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 2, Data: returnMessage})
 			}
+			fmt.Println(returnMessage)
 			break
 
 		case userToUpdate := <-pool.UserStateSet:

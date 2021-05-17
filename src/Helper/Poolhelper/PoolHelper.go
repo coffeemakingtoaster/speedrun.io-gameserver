@@ -51,16 +51,44 @@ func (pool *Pool) Start() {
 		select {
 		case client := <-pool.UserJoin:
 			pool.Clients[client] = true
+			// TODO: There is redundant code here that needs to be removed when refactoring
+			var currentHighscores []string
+			for _, element := range pool.TimeList {
+				currentHighscores = append(currentHighscores, element.PlayerName)
+				currentHighscores = append(currentHighscores, strconv.FormatInt(element.Time, 10))
+			}
+			var returnMessage []string
+			for _, element := range pool.UserStateList {
+				isDash := "false"
+				if element.IsDashing {
+					isDash = "true"
+				}
+				returnMessage = append(returnMessage, element.PlayerName)
+				returnMessage = append(returnMessage, strconv.Itoa(element.PositionX))
+				returnMessage = append(returnMessage, strconv.Itoa(element.PositionY))
+				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityX))
+				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityY))
+				returnMessage = append(returnMessage, isDash)
+			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
+			SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 3, Data: returnMessage})
+			SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 2, Data: currentHighscores})
 			for client, _ := range pool.Clients {
 				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User joined..."}})
 			}
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients, client)
+			for index, element := range pool.UserStateList {
+				if element.PlayerName == client.PlayerName {
+					//delete player from list
+					delete(pool.UserStateList, index)
+					break
+				}
+			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" left")
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User Disconnected..."}})
+				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User " + client.PlayerName + " disconnected..."}})
 			}
 			break
 		case message := <-pool.Broadcast:

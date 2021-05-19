@@ -6,9 +6,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
-
-	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
-	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
 )
 
 func InvalidRouteError(w http.ResponseWriter, r *http.Request) {
@@ -24,10 +21,13 @@ func InvalidRequestError(w http.ResponseWriter, r *http.Request) {
 }
 
 func InvalidRoomIDError(conn *websocket.Conn) {
-	err := SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
-	if err != nil {
-		OutputToConsole("Error", "Message could not be send")
-	}
+	/*
+		err := SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
+		if err != nil {
+			OutputToConsole("Error", "Message could not be send")
+		}
+	*/
+	OutputToConsole("Error", "Invalid room ID provided")
 }
 
 func OutputToConsole(mode string, message string) {

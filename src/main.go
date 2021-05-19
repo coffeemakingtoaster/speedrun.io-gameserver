@@ -32,15 +32,15 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	} else {
 		message = string(p)
 	}
-	parsedRequest := ObjectStructures.Message{}
+	parsedRequest := ObjectStructures.AuthMessage{}
 	err = json.Unmarshal([]byte(message), &parsedRequest)
-	if err != nil || parsedRequest.Type != 0 {
-		ErrorHelper.InvalidRequestError(w, r)
-	}
 	//if validuser continue connection, else close socket
-	if userHelper.ValidateUser(parsedRequest.Data[0]) {
-		ErrorHelper.OutputToConsole("Update", " valid Player with name "+parsedRequest.Data[0]+"has connected ")
-		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Data[0])
+	if userHelper.ValidateUser(parsedRequest.Name) {
+		ErrorHelper.OutputToConsole("Update", " valid Player with name "+parsedRequest.Name+"has connected ")
+		if parsedRequest.Name == "" {
+			return
+		}
+		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Name)
 	} else {
 		socketConn.Close()
 	}
@@ -67,3 +67,38 @@ func main() {
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 	log.Println(http.ListenAndServeTLS(":8080", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
 }
+
+/*
+auth package: name, skin
+
+type: 1 - join
+      2 - just new Highscore
+      3 - just new pos
+      4 - new chat
+      5 - all
+
+
+Highscore: highscore: integer
+	==> name will be attached by server based on name attached to connection
+
+NewPlayerPos: {
+		name: null (will be included by server)
+		x: int
+		y: int
+		xVel: int
+		yVel: int
+		isDashing: bool
+	} => server appends the name itself based on name attached to connection
+
+
+ChatMessage : string => if starts with / and user is dev ==> command
+
+
+
+so: ClientMessage = {
+	type: int
+	highscore: int/null
+	PlayerPosUpdate: object NewPlayerPos/null
+	Chatmessage: string/null
+	}
+*/

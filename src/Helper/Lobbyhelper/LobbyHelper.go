@@ -21,6 +21,6 @@ func GenerateRoomID() string {
 }
 
 func GenerateMessage(payload []byte) {
-	decodedPayload := ObjectStructures.Message{}
+	decodedPayload := ObjectStructures.ReturnMessage{}
 	json.Unmarshal(payload, decodedPayload)
 }

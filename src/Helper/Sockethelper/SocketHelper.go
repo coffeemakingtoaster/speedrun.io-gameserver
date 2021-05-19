@@ -30,31 +30,9 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 
 }
 
-/*
-func Reader(conn *websocket.Conn) string {
-	for {
-		// read in a message
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return ""
-		}
-		// print out that message for clarity
-		fmt.Println(string(p))
-
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return ""
-		}
-
-		return string(p)
-	}
-}
-*/
-
-func Sender(conn *websocket.Conn, payload ObjectStructures.Message) error {
+func Sender(conn *websocket.Conn, message ObjectStructures.ReturnMessage) error {
 	//m, err := json.Marshal(payload)
-	err := conn.WriteJSON(payload)
+	err := conn.WriteJSON(message)
 	if err != nil {
 		return err
 	}

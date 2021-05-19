@@ -4,12 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type RequestObject struct {
-	Purpose string `json:"purpose"`
-	Code    string `json:"code"`
-}
-
-type client struct {
+type Client struct {
 	PlayerName string
 	ID         string
 	Conn       *websocket.Conn
@@ -17,15 +12,42 @@ type client struct {
 }
 
 type Pool struct {
-	UserJoin  chan *client
-	UserLeave chan *client
-	Clients   map[*client]bool
-	Broadcast chan Message
+	UserJoin      chan *Client
+	UserLeave     chan *Client
+	Clients       map[*Client]bool
+	Broadcast     chan string
+	TimeList      map[int]HighScoreStruct
+	TimeListSet   chan HighScoreStruct
+	UserStateList map[int]PlayerPosition
+	UserStateSet  chan PlayerPosition
 }
 
-type Message struct {
-	Type int      `json:"type"`
-	Data []string `json:"data"`
+type PlayerPosition struct {
+	Name      string `json:"name"`
+	PosX      int    `json:"y"`
+	PosY      int    `json:"x"`
+	VelX      int    `json:"VelX"`
+	VelY      int    `json:"VelY"`
+	IsDashing bool   `json:"isDashing"`
+}
+
+type LobbyData struct {
+	ID        string `json:"LobbyID"`
+	MapCode   string `json:"MapID"`
+	LobbyName string `json:"Name"`
+}
+
+type ClientMessage struct {
+	Type        int            `json:"type"`
+	LobbyData   LobbyData      `json:"LobbyData"`
+	Highscore   int64          `json:"highscore"`
+	PlayerPos   PlayerPosition `json:"playerpos"`
+	ChatMessage string         `json:"chat"`
+}
+
+type AuthMessage struct {
+	Name string `json:"name"`
+	Skin string `json:"skinID"`
 }
 
 type HighScoreStruct struct {
@@ -40,4 +62,19 @@ type PlayerStats struct {
 	VelocityX  int    `json:"xVel"`
 	VelocityY  int    `json:"yVel"`
 	IsDashing  bool   `json:"isDashing"`
+}
+
+/*
+type: 1 lobbydata
+type: 2 return Highscores + pos
+type: 3 return highscores
+type: 4 return pos
+type: 5 return chatmessage
+*/
+type ReturnMessage struct {
+	Type        int               `json:"type"`
+	LobbyData   LobbyData         `json:"LobbyData"`
+	Highscore   []HighScoreStruct `json:"highscore"`
+	PlayerPos   []PlayerPosition  `json:"playerpos"`
+	ChatMessage string            `json:"chat"`
 }

@@ -66,6 +66,7 @@ func main() {
 	ErrorHelper.OutputToConsole("Update", "Server online")
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 	log.Println(http.ListenAndServeTLS(":8080", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
+
 }
 
 /*

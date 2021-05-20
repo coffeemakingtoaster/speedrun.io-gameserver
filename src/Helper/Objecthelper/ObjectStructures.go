@@ -26,8 +26,8 @@ type PlayerPosition struct {
 	Name      string `json:"name"`
 	PosX      int    `json:"y"`
 	PosY      int    `json:"x"`
-	VelX      int    `json:"VelX"`
-	VelY      int    `json:"VelY"`
+	VelX      int    `json:"yVel"`
+	VelY      int    `json:"xVel"`
 	IsDashing bool   `json:"isDashing"`
 }
 
@@ -57,10 +57,10 @@ type HighScoreStruct struct {
 
 type PlayerStats struct {
 	PlayerName string `json:"Playername"`
-	PositionX  int    `json:"x"`
-	PositionY  int    `json:"y"`
-	VelocityX  int    `json:"xVel"`
-	VelocityY  int    `json:"yVel"`
+	PositionX  int32  `json:"x"`
+	PositionY  int32  `json:"y"`
+	VelocityX  int32  `json:"xVel"`
+	VelocityY  int32  `json:"yVel"`
 	IsDashing  bool   `json:"isDashing"`
 }
 

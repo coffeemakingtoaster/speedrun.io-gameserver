@@ -103,17 +103,12 @@ func (pool *Pool) Start() {
 			}
 			fmt.Println("Sending new Highscore list")
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
 			}
 			break
 
 		case userToUpdate := <-pool.UserStateSet:
 			foundUser := false
-			/*
-				for index, element := range pool.UserStateList {
-					pool.TimeList[index] = element
-				}
-			*/
 			for index, element := range pool.UserStateList {
 				if element.Name == userToUpdate.Name {
 					pool.UserStateList[index] = userToUpdate
@@ -190,6 +185,7 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 func GenerateMessage(payload []byte, c *Client) {
 	decodedPayload := ObjectStructures.ClientMessage{}
 	json.Unmarshal(payload, &decodedPayload)
+	fmt.Println(decodedPayload.PlayerPos)
 	// 1 is reserver for join
 	// 2 => new Highscore
 	if decodedPayload.Type == 2 {

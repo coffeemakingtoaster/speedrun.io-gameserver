@@ -1,14 +1,13 @@
-package PoolHelper
+package PooleHelper
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 
 	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
 	LobbyHelper "gameserver.speedrun.io/Helper/Lobbyhelper"
-	objectStructures "gameserver.speedrun.io/Helper/Objecthelper"
+	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 	SocketHelper "gameserver.speedrun.io/Helper/Sockethelper"
 	"github.com/gorilla/websocket"
 )
@@ -24,11 +23,11 @@ type Pool struct {
 	UserJoin      chan *Client
 	UserLeave     chan *Client
 	Clients       map[*Client]bool
-	Broadcast     chan objectStructures.Message
-	TimeList      map[int]objectStructures.HighScoreStruct
-	TimeListSet   chan objectStructures.HighScoreStruct
-	UserStateList map[int]objectStructures.PlayerStats
-	UserStateSet  chan objectStructures.PlayerStats
+	Broadcast     chan string
+	TimeList      map[int]ObjectStructures.HighScoreStruct
+	TimeListSet   chan ObjectStructures.HighScoreStruct
+	UserStateList map[int]ObjectStructures.PlayerPosition
+	UserStateSet  chan ObjectStructures.PlayerPosition
 }
 
 //creates new pool
@@ -37,11 +36,11 @@ func NewPool() *Pool {
 		UserJoin:      make(chan *Client),
 		UserLeave:     make(chan *Client),
 		Clients:       make(map[*Client]bool),
-		Broadcast:     make(chan objectStructures.Message),
-		TimeList:      make(map[int]objectStructures.HighScoreStruct),
-		TimeListSet:   make(chan objectStructures.HighScoreStruct),
-		UserStateList: make(map[int]objectStructures.PlayerStats),
-		UserStateSet:  make(chan objectStructures.PlayerStats),
+		Broadcast:     make(chan string),
+		TimeList:      make(map[int]ObjectStructures.HighScoreStruct),
+		TimeListSet:   make(chan ObjectStructures.HighScoreStruct),
+		UserStateList: make(map[int]ObjectStructures.PlayerPosition),
+		UserStateSet:  make(chan ObjectStructures.PlayerPosition),
 	}
 }
 
@@ -52,57 +51,41 @@ func (pool *Pool) Start() {
 		case client := <-pool.UserJoin:
 			pool.Clients[client] = true
 			// TODO: There is redundant code here that needs to be removed when refactoring
-			var currentHighscores []string
+			var currentHighscores []ObjectStructures.HighScoreStruct
 			for _, element := range pool.TimeList {
-				currentHighscores = append(currentHighscores, element.PlayerName)
-				currentHighscores = append(currentHighscores, strconv.FormatInt(element.Time, 10))
+				currentHighscores = append(currentHighscores, element)
 			}
-			var returnMessage []string
+			var currentPlayers []ObjectStructures.PlayerPosition
 			for _, element := range pool.UserStateList {
-				isDash := "false"
-				if element.IsDashing {
-					isDash = "true"
-				}
-				returnMessage = append(returnMessage, element.PlayerName)
-				returnMessage = append(returnMessage, strconv.Itoa(element.PositionX))
-				returnMessage = append(returnMessage, strconv.Itoa(element.PositionY))
-				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityX))
-				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityY))
-				returnMessage = append(returnMessage, isDash)
+				currentPlayers = append(currentPlayers, element)
 			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
-			SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 3, Data: returnMessage})
-			SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 2, Data: currentHighscores})
+			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User joined..."}})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients, client)
 			for index, element := range pool.UserStateList {
-				if element.PlayerName == client.PlayerName {
+				if element.Name == client.PlayerName {
 					//delete player from list
 					delete(pool.UserStateList, index)
 					break
 				}
 			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" left")
-			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 1, Data: []string{"User " + client.PlayerName + " disconnected..."}})
+			for c, _ := range pool.Clients {
+				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User left " + client.PlayerName + "!"})
 			}
 			break
 		case message := <-pool.Broadcast:
 			ErrorHelper.OutputToConsole("Log", "Broadcasting")
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, message)
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: message})
 			}
 		case userToUpdate := <-pool.TimeListSet:
 			foundUser := false
-			/*
-				for index, element := range pool.TimeList {
-					pool.TimeList[index] = element
-				}
-			*/
 			for index, element := range pool.TimeList {
 				if element.PlayerName == userToUpdate.PlayerName {
 					pool.TimeList[index] = userToUpdate
@@ -114,27 +97,20 @@ func (pool *Pool) Start() {
 				ErrorHelper.OutputToConsole("Warning", "User not found in Highscorelist. Adding user to List...")
 				pool.TimeList[len(pool.TimeList)+1] = userToUpdate
 			}
-			var returnMessage []string
+			var currentHighscores []ObjectStructures.HighScoreStruct
 			for _, element := range pool.TimeList {
-				returnMessage = append(returnMessage, element.PlayerName)
-				returnMessage = append(returnMessage, strconv.FormatInt(element.Time, 10))
+				currentHighscores = append(currentHighscores, element)
 			}
 			fmt.Println("Sending new Highscore list")
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 2, Data: returnMessage})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
 			}
-			fmt.Println(returnMessage)
 			break
 
 		case userToUpdate := <-pool.UserStateSet:
 			foundUser := false
-			/*
-				for index, element := range pool.UserStateList {
-					pool.TimeList[index] = element
-				}
-			*/
 			for index, element := range pool.UserStateList {
-				if element.PlayerName == userToUpdate.PlayerName {
+				if element.Name == userToUpdate.Name {
 					pool.UserStateList[index] = userToUpdate
 					foundUser = true
 					break
@@ -144,22 +120,13 @@ func (pool *Pool) Start() {
 				ErrorHelper.OutputToConsole("Warning", "User not found in Positionlist. Adding user to List...")
 				pool.UserStateList[len(pool.UserStateList)+1] = userToUpdate
 			}
-			var returnMessage []string
+			var returnMessage []ObjectStructures.PlayerPosition
 			// TODO: We have to get on and continue so this has to stay for now. BUT IT HAS TO BE REWORKED
 			for _, element := range pool.UserStateList {
-				isDash := "false"
-				if element.IsDashing {
-					isDash = "true"
-				}
-				returnMessage = append(returnMessage, element.PlayerName)
-				returnMessage = append(returnMessage, strconv.Itoa(element.PositionX))
-				returnMessage = append(returnMessage, strconv.Itoa(element.PositionY))
-				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityX))
-				returnMessage = append(returnMessage, strconv.Itoa(element.VelocityY))
-				returnMessage = append(returnMessage, isDash)
+				returnMessage = append(returnMessage, element)
 			}
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, objectStructures.Message{Type: 3, Data: returnMessage})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: returnMessage, ChatMessage: ""})
 			}
 			break
 		}
@@ -180,12 +147,12 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 			log.Println(err)
 			return
 		}
-		decodedPayload := objectStructures.Message{}
+		decodedPayload := ObjectStructures.ClientMessage{}
 		json.Unmarshal(p, &decodedPayload)
 		//if player is not in room
 		if c.Pool == nil {
 			//create room if no roomID was passed
-			if decodedPayload.Data == nil {
+			if decodedPayload.LobbyData.ID == "" {
 				newRoom := NewPool()
 				go newRoom.Start()
 				c.Pool = *&newRoom
@@ -202,7 +169,7 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 				ErrorHelper.OutputToConsole("Update", "Created new Room(ID:"+Id+")")
 				c.Pool.UserJoin <- c
 			} else {
-				if roomPool, b := poolList[decodedPayload.Data[0]]; b {
+				if roomPool, b := poolList[decodedPayload.LobbyData.ID]; b {
 					c.Pool = &roomPool
 					c.Pool.UserJoin <- c
 				} else {
@@ -216,39 +183,25 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 }
 
 func GenerateMessage(payload []byte, c *Client) {
-	decodedPayload := objectStructures.Message{}
+	decodedPayload := ObjectStructures.ClientMessage{}
 	json.Unmarshal(payload, &decodedPayload)
-	if decodedPayload.Type == 1 {
-		time, err := strconv.Atoi(decodedPayload.Data[0])
-		if err != nil {
-			return
-		}
-		data := objectStructures.HighScoreStruct{
+	fmt.Println(decodedPayload.PlayerPos)
+	// 1 is reserver for join
+	// 2 => new Highscore
+	if decodedPayload.Type == 2 {
+		time := decodedPayload.Highscore
+		data := ObjectStructures.HighScoreStruct{
 			PlayerName: c.PlayerName,
-			Time:       int64(time),
+			Time:       time,
 		}
 		ErrorHelper.OutputToConsole("Update", "User "+c.PlayerName+" send a new personal highscore!")
 		c.Pool.TimeListSet <- data
 		return
-	} else if decodedPayload.Type == 2 {
-		x, _ := strconv.Atoi(decodedPayload.Data[1])
-		y, _ := strconv.Atoi(decodedPayload.Data[2])
-		Velx, _ := strconv.Atoi(decodedPayload.Data[3])
-		Vely, _ := strconv.Atoi(decodedPayload.Data[4])
-		isDashing := false
-		if decodedPayload.Data[4] == "true" {
-			isDashing = true
-		}
-		decodedPlayerState := objectStructures.PlayerStats{
-			PlayerName: decodedPayload.Data[0],
-			PositionX:  x,
-			PositionY:  y,
-			VelocityX:  Velx,
-			VelocityY:  Vely,
-			IsDashing:  isDashing,
-		}
-		json.Unmarshal([]byte(decodedPayload.Data[0]), &decodedPlayerState)
-		c.Pool.UserStateSet <- decodedPlayerState
+		//new Player Position
+	} else if decodedPayload.Type == 3 {
+		newPos := decodedPayload.PlayerPos
+		newPos.Name = c.PlayerName
+		c.Pool.UserStateSet <- newPos
 	}
 }
 
@@ -259,6 +212,6 @@ func InitInputHandler(conn *websocket.Conn, m map[string]Pool, username string) 
 		Conn:       conn,
 		Pool:       nil,
 	}
-	SocketHelper.Sender(c.Conn, objectStructures.Message{Type: 1, Data: []string{"credentials confirmed"}})
+	//SocketHelper.Sender(c.Conn, ObjectStructures.Message{Type: 1, Data: []string{"credentials confirmed"}})
 	c.HandleInput(m)
 }

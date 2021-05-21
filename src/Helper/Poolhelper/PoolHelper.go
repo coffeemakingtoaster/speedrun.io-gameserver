@@ -60,7 +60,7 @@ func (pool *Pool) Start() {
 				currentPlayers = append(currentPlayers, element)
 			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
-			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
+			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 4, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
 			for client, _ := range pool.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}

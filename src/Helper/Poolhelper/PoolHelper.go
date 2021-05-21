@@ -201,6 +201,7 @@ func GenerateMessage(payload []byte, c *Client) {
 	} else if decodedPayload.Type == 3 {
 		newPos := decodedPayload.PlayerPos
 		newPos.Name = c.PlayerName
+		fmt.Println(newPos.Name)
 		c.Pool.UserStateSet <- newPos
 	}
 }

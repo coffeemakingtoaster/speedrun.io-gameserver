@@ -23,7 +23,7 @@ type Pool struct {
 }
 
 type PlayerPosition struct {
-	Name      string `json:"name"`
+	Name      string `json:"PlayerName"`
 	PosX      int    `json:"y"`
 	PosY      int    `json:"x"`
 	VelX      int    `json:"yVel"`

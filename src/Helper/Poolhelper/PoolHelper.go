@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
 	LobbyHelper "gameserver.speedrun.io/Helper/Lobbyhelper"
@@ -23,11 +24,12 @@ type Pool struct {
 	UserJoin      chan *Client
 	UserLeave     chan *Client
 	Clients       map[*Client]bool
-	Broadcast     chan string
+	Broadcast     chan ObjectStructures.ReturnMessage
 	TimeList      map[int]ObjectStructures.HighScoreStruct
 	TimeListSet   chan ObjectStructures.HighScoreStruct
 	UserStateList map[int]ObjectStructures.PlayerPosition
 	UserStateSet  chan ObjectStructures.PlayerPosition
+	killPool      bool
 }
 
 //creates new pool
@@ -36,7 +38,7 @@ func NewPool() *Pool {
 		UserJoin:      make(chan *Client),
 		UserLeave:     make(chan *Client),
 		Clients:       make(map[*Client]bool),
-		Broadcast:     make(chan string),
+		Broadcast:     make(chan ObjectStructures.ReturnMessage),
 		TimeList:      make(map[int]ObjectStructures.HighScoreStruct),
 		TimeListSet:   make(chan ObjectStructures.HighScoreStruct),
 		UserStateList: make(map[int]ObjectStructures.PlayerPosition),
@@ -44,9 +46,28 @@ func NewPool() *Pool {
 	}
 }
 
+func PoolUpdate(pool *Pool) {
+	for true {
+		if len(pool.Clients) <= 0 {
+			pool.killPool = true
+			break
+		}
+		var currentPlayers []ObjectStructures.PlayerPosition
+		for _, element := range pool.UserStateList {
+			currentPlayers = append(currentPlayers, element)
+		}
+		pool.Broadcast <- ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: currentPlayers, ChatMessage: ""}
+		time.Sleep(200 * time.Millisecond)
+	}
+
+}
+
 //handles interaction with the pool
 func (pool *Pool) Start() {
 	for {
+		if pool.killPool {
+			break
+		}
 		select {
 		case client := <-pool.UserJoin:
 			pool.Clients[client] = true
@@ -120,14 +141,16 @@ func (pool *Pool) Start() {
 				ErrorHelper.OutputToConsole("Warning", "User not found in Positionlist. Adding user to List...")
 				pool.UserStateList[len(pool.UserStateList)+1] = userToUpdate
 			}
-			var returnMessage []ObjectStructures.PlayerPosition
-			// TODO: We have to get on and continue so this has to stay for now. BUT IT HAS TO BE REWORKED
-			for _, element := range pool.UserStateList {
-				returnMessage = append(returnMessage, element)
-			}
-			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: returnMessage, ChatMessage: ""})
-			}
+			/*
+				var returnMessage []ObjectStructures.PlayerPosition
+				// TODO: We have to get on and continue so this has to stay for now. BUT IT HAS TO BE REWORKED
+				for _, element := range pool.UserStateList {
+					returnMessage = append(returnMessage, element)
+				}
+				for client, _ := range pool.Clients {
+					SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: returnMessage, ChatMessage: ""})
+				}
+			*/
 			break
 		}
 	}

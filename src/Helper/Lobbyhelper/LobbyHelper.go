@@ -1,11 +1,8 @@
 package LobbyHelper
 
 import (
-	"encoding/json"
 	"math/rand"
 	"time"
-
-	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 )
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -17,10 +14,4 @@ func GenerateRoomID() string {
 		id[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(id)
-
-}
-
-func GenerateMessage(payload []byte) {
-	decodedPayload := ObjectStructures.ReturnMessage{}
-	json.Unmarshal(payload, decodedPayload)
 }

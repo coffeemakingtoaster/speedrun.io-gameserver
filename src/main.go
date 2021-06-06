@@ -59,13 +59,14 @@ func main() {
 
 	roomList = make(map[string]PoolHelper.Pool)
 	newRoom := PoolHelper.NewPool()
-	go newRoom.Start()
+	go newRoom.Start(true)
 	roomList["devTest"] = *newRoom
 	ErrorHelper.OutputToConsole("Update", "initializing server...")
 	setupRoutes(router)
 	ErrorHelper.OutputToConsole("Update", "Server online")
 	corsObj := handlers.AllowedOrigins([]string{"*"})
-	log.Println(http.ListenAndServeTLS(":443", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
+	log.Println(http.ListenAndServe(":8080", handlers.CORS(corsObj)(router)))
+	//log.Println(http.ListenAndServeTLS(":443", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
 
 }
 

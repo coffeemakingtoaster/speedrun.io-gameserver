@@ -1,4 +1,4 @@
-package PooleHelper
+package PoolHelper
 
 import (
 	"encoding/json"
@@ -46,25 +46,40 @@ func NewPool() *Pool {
 	}
 }
 
-func PoolUpdate(pool *Pool) {
+func PoolUpdate(pool *Pool, isPermanent bool) {
+	steps := 0
 	for true {
-		if len(pool.Clients) <= 0 {
-			pool.killPool = true
+		//if pool is closed end goroutine
+		if pool.killPool {
 			break
 		}
+		//check every minute if Lobby is empty and delete if true
+		if steps >= 300 {
+			if len(pool.Clients) <= 0 && !isPermanent {
+				pool.killPool = true
+				break
+			}
+			steps = 0
+		}
 		var currentPlayers []ObjectStructures.PlayerPosition
-		for _, element := range pool.UserStateList {
+		var UserListCopy = pool.UserStateList
+		for _, element := range UserListCopy {
 			currentPlayers = append(currentPlayers, element)
 		}
 		pool.Broadcast <- ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: currentPlayers, ChatMessage: ""}
 		time.Sleep(200 * time.Millisecond)
+		steps += 1
 	}
 
 }
 
 //handles interaction with the pool
-func (pool *Pool) Start() {
+func (pool *Pool) Start(isPermanent bool) {
+	fmt.Println("started Lobby")
+	go PoolUpdate(pool, isPermanent)
+
 	for {
+		//if loby is empty and not meant to be permanent => close it
 		if pool.killPool {
 			break
 		}
@@ -82,6 +97,7 @@ func (pool *Pool) Start() {
 			}
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
 			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 4, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
+			fmt.Println("Send data to user")
 			for client, _ := range pool.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}
@@ -101,9 +117,8 @@ func (pool *Pool) Start() {
 			}
 			break
 		case message := <-pool.Broadcast:
-			ErrorHelper.OutputToConsole("Log", "Broadcasting")
 			for client, _ := range pool.Clients {
-				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: message})
+				SocketHelper.Sender(client.Conn, message)
 			}
 		case userToUpdate := <-pool.TimeListSet:
 			foundUser := false
@@ -122,7 +137,7 @@ func (pool *Pool) Start() {
 			for _, element := range pool.TimeList {
 				currentHighscores = append(currentHighscores, element)
 			}
-			fmt.Println("Sending new Highscore list")
+			fmt.Println("Sending new Highscore list", currentHighscores)
 			for client, _ := range pool.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
 			}
@@ -177,7 +192,7 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 			//create room if no roomID was passed
 			if decodedPayload.LobbyData.ID == "" {
 				newRoom := NewPool()
-				go newRoom.Start()
+				go newRoom.Start(false)
 				c.Pool = *&newRoom
 				Id := LobbyHelper.GenerateRoomID()
 				for {
@@ -193,10 +208,9 @@ func (c *Client) HandleInput(poolList map[string]Pool) {
 				c.Pool.UserJoin <- c
 			} else {
 				if roomPool, b := poolList[decodedPayload.LobbyData.ID]; b {
+					fmt.Println("User joined")
 					c.Pool = &roomPool
 					c.Pool.UserJoin <- c
-				} else {
-					ErrorHelper.InvalidRoomIDError(c.Conn)
 				}
 			}
 		} else {
@@ -211,6 +225,7 @@ func GenerateMessage(payload []byte, c *Client) {
 	fmt.Println(decodedPayload.PlayerPos)
 	// 1 is reserver for join
 	// 2 => new Highscore
+	// 3 => new Player Position
 	if decodedPayload.Type == 2 {
 		time := decodedPayload.Highscore
 		data := ObjectStructures.HighScoreStruct{
@@ -224,12 +239,13 @@ func GenerateMessage(payload []byte, c *Client) {
 	} else if decodedPayload.Type == 3 {
 		newPos := decodedPayload.PlayerPos
 		newPos.Name = c.PlayerName
-		fmt.Println(newPos.Name)
 		c.Pool.UserStateSet <- newPos
 	}
 }
 
 func InitInputHandler(conn *websocket.Conn, m map[string]Pool, username string) {
+
+	//TODO set UserID => check if it is ever needed
 	c := &Client{
 		PlayerName: username,
 		ID:         "1234",

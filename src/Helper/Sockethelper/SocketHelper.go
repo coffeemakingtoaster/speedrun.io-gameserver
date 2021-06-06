@@ -2,7 +2,6 @@ package SocketHelper
 
 import (
 	"errors"
-	"log"
 	"net/http"
 
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
@@ -22,7 +21,6 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 	// connection
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println()
 		return nil, errors.New("Something went wrong")
 	}
 	// helpful log statement to show connections

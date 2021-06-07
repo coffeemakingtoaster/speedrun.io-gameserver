@@ -1,11 +1,15 @@
 name: unittests
 
-stages:
-   - test
+on: [push]
 
-unit_tests:
-  stage: test
-  image: golang:1.16
-  script:
-    - cd src
-    - go test ./...
+jobs:
+   unittests:
+      runs-on: golang:1.16 
+      steps: 
+         - name: cd to src
+           run: cd src         
+         - name: Run tests
+           run: go test ./...
+
+
+    

@@ -3,7 +3,6 @@
 This project is under construction and not finished. Therefore some functionalities might not be implemented to their full extend. This is partly due to the game client (which is on a private gitlab) not being fully finished.
 <br> Also as of now the docker build is broken. While it compiles properly there are some issues with the user access rights. This is a known issue that will be fixed in the near future. 
 <br> For information on how to deploy the current version of the project see the wiki.
-<br> This repository mirrors to another repository on the same private gitlab that the game is located on, therefore unittets are not on the pipeline on github.
 
 ## Overview
 This is the server responsible for the real time multiplayer from speedrun.io. 

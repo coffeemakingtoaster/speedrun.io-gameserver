@@ -9,5 +9,5 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/posener/wstest v1.2.0
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
+	golang.org/x/sys v0.0.0-20200803210538-64077c9b5642 // indirect
 )

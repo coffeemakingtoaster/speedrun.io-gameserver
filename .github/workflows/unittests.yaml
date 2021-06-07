@@ -11,13 +11,11 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v2
       with:
-        go-version: ${{ matrix.go-version }}
-    - name: Go to src
-      run: cd src
+        go-version: ${{ matrix.go-version }}    
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
-      run: go test ./....
+      run: go test ./src/....
 
 
     

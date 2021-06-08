@@ -1,6 +1,8 @@
 package ObjectStructures
 
 import (
+	"sync"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -11,17 +13,32 @@ type Client struct {
 	Pool       *Pool
 }
 
+type ClientStct struct {
+	Mu      sync.Mutex
+	Clients map[*Client]bool
+}
+
+type HighScore struct {
+	Mu         sync.Mutex
+	Highscores map[int]HighScoreStruct
+}
+
+type UserStates struct {
+	Mu         sync.Mutex
+	Userstates map[int]PlayerPosition
+}
+
 type Pool struct {
 	UserJoin      chan *Client
 	UserLeave     chan *Client
-	Clients       map[*Client]bool
-	Broadcast     chan string
-	TimeList      map[int]HighScoreStruct
+	Clients       ClientStct
+	Broadcast     chan ReturnMessage
+	TimeList      HighScore
 	TimeListSet   chan HighScoreStruct
-	UserStateList map[int]PlayerPosition
+	UserStateList UserStates
 	UserStateSet  chan PlayerPosition
+	KillPool      bool
 }
-
 type PlayerPosition struct {
 	Name      string `json:"PlayerName"`
 	PosX      int    `json:"y"`

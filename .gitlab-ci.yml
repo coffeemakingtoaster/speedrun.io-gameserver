@@ -1,0 +1,9 @@
+stages:
+   - test
+
+unit_tests:
+  stage: test
+  image: golang:1.16
+  script:
+    - cd src
+    - go test ./...

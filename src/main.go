@@ -17,7 +17,7 @@ import (
 	userHelper "gameserver.speedrun.io/Helper/Userhelper"
 )
 
-var roomList map[string]PoolHelper.Pool
+var roomList PoolHelper.MapPool
 
 func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	var socketConn, err = SocketHelper.WsEndpoint(w, r)
@@ -56,11 +56,10 @@ func setupRoutes(router *mux.Router) {
 
 func main() {
 	router := mux.NewRouter()
-
-	roomList = make(map[string]PoolHelper.Pool)
+	roomList = PoolHelper.MapPool{Maps: make(map[string]ObjectStructures.Pool)}
 	newRoom := PoolHelper.NewPool()
-	go newRoom.Start(true)
-	roomList["devTest"] = *newRoom
+	go PoolHelper.Start(true, newRoom)
+	roomList.Maps["devTest"] = *newRoom
 	ErrorHelper.OutputToConsole("Update", "initializing server...")
 	setupRoutes(router)
 	ErrorHelper.OutputToConsole("Update", "Server online")

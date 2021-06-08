@@ -13,8 +13,8 @@ import (
 var (
 	wsUpgrader   = websocket.Upgrader{}
 	DummyConn    *websocket.Conn
-	mockLobbyMap = make(map[string]Pool)
-	DummyLobby   Pool
+	mockLobbyMap = MapPool{Maps: make(map[string]ObjectStructures.Pool)}
+	DummyLobby   ObjectStructures.Pool
 )
 
 type echoServer struct {
@@ -51,8 +51,6 @@ func TestPoolJoin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println("received response")
-
 	//close Connection to the server
 	DummyConn.Close()
 
@@ -62,7 +60,8 @@ func TestPoolJoin(t *testing.T) {
 	}
 
 	<-s.Done
-	DummyLobby.killPool = true
+	DummyLobby.KillPool = true
+
 }
 
 func TestPoolCreate(t *testing.T) {
@@ -82,15 +81,16 @@ func TestPoolCreate(t *testing.T) {
 	payload := ObjectStructures.ClientMessage{Type: 1, LobbyData: ObjectStructures.LobbyData{ID: "", MapCode: "", LobbyName: ""}, Highscore: 0, PlayerPos: ObjectStructures.PlayerPosition{}, ChatMessage: ""}
 	DummyConn.WriteJSON(payload)
 
+	fmt.Println("send message")
+
 	//two blocks because client sends 2 packages when a user joins
 	var returnValue = ObjectStructures.ReturnMessage{}
 	err = DummyConn.ReadJSON(&returnValue)
+	fmt.Println("received message")
 	if err != nil {
 		fmt.Println(err)
 		t.Fatal(err)
 	}
-
-	fmt.Println("received response")
 
 	//close Connection to the server
 	DummyConn.Close()
@@ -100,7 +100,9 @@ func TestPoolCreate(t *testing.T) {
 	}
 
 	<-s.Done
-	DummyLobby.killPool = true
+	DummyLobby.KillPool = true
+
+	fmt.Println("second test success")
 }
 
 func TestClientInput(t *testing.T) {
@@ -169,7 +171,9 @@ func TestClientInput(t *testing.T) {
 
 	DummyConn.Close()
 	<-s.Done
-	DummyLobby.killPool = true
+	DummyLobby.KillPool = true
+
+	fmt.Println("third test success")
 }
 
 //Mock a httpserver => replace main.go and bypass user authentification
@@ -187,10 +191,10 @@ func (s *echoServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//this is usually provided by the main class and generated at programmstart
-	mockLobbyMap := make(map[string]Pool)
+	mockLobbyMap := MapPool{Maps: make(map[string]ObjectStructures.Pool)}
 	DummyLobby := NewPool()
-	go DummyLobby.Start(true)          //true because otherwise Lobby would be instantly closed due to no connected clients
-	mockLobbyMap["mock"] = *DummyLobby //add Dummylobby
+	go Start(true, DummyLobby)              //true because otherwise Lobby would be instantly closed due to no connected clients
+	mockLobbyMap.Maps["mock"] = *DummyLobby //add Dummylobby
 
 	InitInputHandler(mockConn, mockLobbyMap, "mock")
 

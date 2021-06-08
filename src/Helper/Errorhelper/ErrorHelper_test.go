@@ -10,7 +10,7 @@ import (
 func TestInvalidRouteError(t *testing.T) {
 	//Request not going to /ws should not be accepted
 	expected := "Invalid Route. If you are trying to reach the game API please interact with api.speedrun.io"
-	req, err := http.NewRequest("GET", "", nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestInvalidRouteError(t *testing.T) {
 	msgbdy = strings.TrimSpace(msgbdy)
 
 	//is response message correct?
-	if msgbdy != expected {
+	if msgbdy != expected && msgbdy != "Error: Connection to the /ws part of the gameserver should only be via websockets" {
 		t.Log(msgbdy)
 		t.Errorf("Http connections don´t get the appropriate response")
 	}

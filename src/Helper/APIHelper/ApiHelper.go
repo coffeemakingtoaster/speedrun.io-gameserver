@@ -36,7 +36,7 @@ func ReportLobbyChange(lobby ObjectStructures.LobbyData) {
 }
 
 func ReportLobby(lobby ObjectStructures.LobbyData) {
-	secret, err := ioutil.ReadFile("/cert/jwtSecret.txt")
+	secret, err := ioutil.ReadFile("/cert/apiSecret.txt")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -79,7 +79,7 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 }
 
 func CloseLobby(lobby ObjectStructures.LobbyData) {
-	secret, err := ioutil.ReadFile("/cert/jwtSecret.txt")
+	secret, err := ioutil.ReadFile("/cert/apiSecret.txt")
 	if err != nil {
 		fmt.Println(err)
 	}

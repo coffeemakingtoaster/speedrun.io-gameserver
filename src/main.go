@@ -4,6 +4,8 @@ package main
 //for the webserver
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -18,6 +20,7 @@ import (
 )
 
 var roomList PoolHelper.MapPool
+var tokenSecret []byte
 
 func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	var socketConn, err = SocketHelper.WsEndpoint(w, r)
@@ -35,11 +38,8 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	parsedRequest := ObjectStructures.AuthMessage{}
 	err = json.Unmarshal([]byte(message), &parsedRequest)
 	//if validuser continue connection, else close socket
-	if userHelper.ValidateUser(parsedRequest.Name) {
+	if ok, err := userHelper.ValidateJWSToken(parsedRequest.Token, tokenSecret, parsedRequest.Name); err == nil && ok {
 		ErrorHelper.OutputToConsole("Update", " valid Player with name "+parsedRequest.Name+"has connected ")
-		if parsedRequest.Name == "" {
-			return
-		}
 		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Name)
 	} else {
 		socketConn.Close()
@@ -55,6 +55,11 @@ func setupRoutes(router *mux.Router) {
 }
 
 func main() {
+	cont, err := ioutil.ReadFile("/cert/jwtSecret.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	tokenSecret = []byte(cont)
 	router := mux.NewRouter()
 	roomList = PoolHelper.MapPool{Maps: make(map[string]ObjectStructures.Pool)}
 	newRoom := PoolHelper.NewPool()
@@ -66,7 +71,6 @@ func main() {
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 	//log.Println(http.ListenAndServe(":8080", handlers.CORS(corsObj)(router)))
 	log.Println(http.ListenAndServeTLS(":443", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
-
 }
 
 /*

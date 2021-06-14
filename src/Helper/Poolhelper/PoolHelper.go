@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	ApiHelper "gameserver.speedrun.io/Helper/APIHelper"
 	ErrorHelper "gameserver.speedrun.io/Helper/Errorhelper"
 	LobbyHelper "gameserver.speedrun.io/Helper/Lobbyhelper"
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
@@ -15,21 +16,19 @@ import (
 )
 
 type MapPool struct {
-	Mu   sync.Mutex
+	Mu   sync.RWMutex
 	Maps map[string]ObjectStructures.Pool
 }
 
 //creates new pool
 func NewPool() *ObjectStructures.Pool {
 	return &ObjectStructures.Pool{
-		UserJoin:      make(chan *ObjectStructures.Client),
-		UserLeave:     make(chan *ObjectStructures.Client),
-		Clients:       ObjectStructures.ClientStct{Clients: make(map[*ObjectStructures.Client]bool)},
-		Broadcast:     make(chan ObjectStructures.ReturnMessage),
-		TimeList:      ObjectStructures.HighScore{Highscores: make(map[int]ObjectStructures.HighScoreStruct)},
-		TimeListSet:   make(chan ObjectStructures.HighScoreStruct),
-		UserStateList: ObjectStructures.UserStates{Userstates: make(map[int]ObjectStructures.PlayerPosition)},
-		UserStateSet:  make(chan ObjectStructures.PlayerPosition),
+		UserJoin:     make(chan *ObjectStructures.Client),
+		UserLeave:    make(chan *ObjectStructures.Client),
+		Clients:      ObjectStructures.ClientStct{Clients: make(map[*ObjectStructures.Client]bool)},
+		Broadcast:    make(chan ObjectStructures.ReturnMessage),
+		TimeListSet:  make(chan ObjectStructures.HighScoreStruct),
+		UserStateSet: make(chan ObjectStructures.PlayerPosition),
 	}
 }
 
@@ -48,28 +47,41 @@ func PoolUpdate(pool *ObjectStructures.Pool, isPermanent bool) {
 			}
 			steps = 0
 		}
-		pool.UserStateList.Mu.Lock()
-		var currentPlayers []ObjectStructures.PlayerPosition
-		var UserListCopy = pool.UserStateList.Userstates
-		pool.UserStateList.Mu.Unlock()
-		for _, element := range UserListCopy {
-			currentPlayers = append(currentPlayers, element)
-		}
-		pool.Broadcast <- ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: currentPlayers, ChatMessage: ""}
+
+		//if lobby has run out -> mapchange
+		/*
+			if uint64(time.Now().Second()) >= pool.LobbyTime {
+				pool.LobbyData.MapCode = LobbyHelper.AlterMap()
+				pool.Broadcast <- ObjectStructures.ReturnMessage{Type: 1, LobbyData: pool.LobbyData, Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: ([]ObjectStructures.PlayerPosition{}), ChatMessage: ""}
+				ApiHelper.ReportLobbyChange(pool.LobbyData)
+			}
+		*/
+		pool.Broadcast <- createPositionList(pool)
 		time.Sleep(200 * time.Millisecond)
 		steps += 1
 	}
 
 }
 
+func createPositionList(pool *ObjectStructures.Pool) ObjectStructures.ReturnMessage {
+	var currentPlayers []ObjectStructures.PlayerPosition
+	pool.UserStateList.Range(func(key, value interface{}) bool {
+		currentPlayers = append(currentPlayers, value.(ObjectStructures.PlayerPosition))
+		return true
+	})
+	return ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: currentPlayers, ChatMessage: ""}
+}
+
 //handles interaction with the pool
 func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 	fmt.Println("started Lobby")
+	ApiHelper.ReportLobby(pool.LobbyData)
+	pool.LobbyTime = uint64(time.Now().Second()) + 600
 	go PoolUpdate(pool, isPermanent)
-
 	for {
 		//if loby is empty and not meant to be permanent => close it
 		if pool.KillPool {
+			ApiHelper.CloseLobby(pool.LobbyData)
 			break
 		}
 		select {
@@ -77,13 +89,15 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			pool.Clients.Clients[client] = true
 			// TODO: There is redundant code here that needs to be removed when refactoring
 			var currentHighscores []ObjectStructures.HighScoreStruct
-			for _, element := range pool.TimeList.Highscores {
-				currentHighscores = append(currentHighscores, element)
-			}
+			pool.TimeList.Range(func(key, value interface{}) bool {
+				currentHighscores = append(currentHighscores, value.(ObjectStructures.HighScoreStruct))
+				return true
+			})
 			var currentPlayers []ObjectStructures.PlayerPosition
-			for _, element := range pool.UserStateList.Userstates {
-				currentPlayers = append(currentPlayers, element)
-			}
+			pool.UserStateList.Range(func(key, value interface{}) bool {
+				currentPlayers = append(currentPlayers, value.(ObjectStructures.PlayerPosition))
+				return true
+			})
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
 			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 4, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
 			fmt.Println("Send data to user")
@@ -93,13 +107,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients.Clients, client)
-			for index, element := range pool.UserStateList.Userstates {
-				if element.Name == client.PlayerName {
-					//delete player from list
-					delete(pool.UserStateList.Userstates, index)
-					break
-				}
-			}
+			pool.UserStateList.Delete(client.PlayerName)
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" left")
 			for c, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User left " + client.PlayerName + "!"})
@@ -110,51 +118,19 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 				SocketHelper.Sender(client.Conn, message)
 			}
 		case userToUpdate := <-pool.TimeListSet:
-			foundUser := false
-			for index, element := range pool.TimeList.Highscores {
-				if element.PlayerName == userToUpdate.PlayerName {
-					pool.TimeList.Highscores[index] = userToUpdate
-					foundUser = true
-					break
-				}
-			}
-			if !foundUser {
-				ErrorHelper.OutputToConsole("Warning", "User not found in Highscorelist. Adding user to List...")
-				pool.TimeList.Highscores[len(pool.TimeList.Highscores)+1] = userToUpdate
-			}
+			pool.TimeList.Store(userToUpdate.PlayerName, userToUpdate)
 			var currentHighscores []ObjectStructures.HighScoreStruct
-			for _, element := range pool.TimeList.Highscores {
-				currentHighscores = append(currentHighscores, element)
-			}
+			pool.TimeList.Range(func(key, value interface{}) bool {
+				currentHighscores = append(currentHighscores, value.(ObjectStructures.HighScoreStruct))
+				return true
+			})
 			fmt.Println("Sending new Highscore list", currentHighscores)
 			for client, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
 			}
 			break
-
 		case userToUpdate := <-pool.UserStateSet:
-			foundUser := false
-			for index, element := range pool.UserStateList.Userstates {
-				if element.Name == userToUpdate.Name {
-					pool.UserStateList.Userstates[index] = userToUpdate
-					foundUser = true
-					break
-				}
-			}
-			if !foundUser {
-				ErrorHelper.OutputToConsole("Warning", "User not found in Positionlist. Adding user to List...")
-				pool.UserStateList.Userstates[len(pool.UserStateList.Userstates)+1] = userToUpdate
-			}
-			/*
-				var returnMessage []ObjectStructures.PlayerPosition
-				// TODO: We have to get on and continue so this has to stay for now. BUT IT HAS TO BE REWORKED
-				for _, element := range pool.UserStateList {
-					returnMessage = append(returnMessage, element)
-				}
-				for client, _ := range pool.Clients {
-					SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: returnMessage, ChatMessage: ""})
-				}
-			*/
+			pool.UserStateList.Store(userToUpdate.Name, userToUpdate)
 			break
 		}
 	}
@@ -184,6 +160,10 @@ func HandleInput(poolList MapPool, c *ObjectStructures.Client) {
 
 			} else {
 				if roomPool, b := poolList.Maps[decodedPayload.LobbyData.ID]; b {
+					if roomPool.KillPool == true {
+						delete(poolList.Maps, decodedPayload.LobbyData.ID)
+						break
+					}
 					fmt.Println("User joined")
 					c.Pool = &roomPool
 					c.Pool.UserJoin <- c
@@ -197,6 +177,12 @@ func HandleInput(poolList MapPool, c *ObjectStructures.Client) {
 
 func CreateRoom(c *ObjectStructures.Client, poolList MapPool) {
 	poolList.Mu.Lock()
+	//as this locks the Map I will also check for deleted lobbies here
+	for lobby := range poolList.Maps {
+		if poolList.Maps[lobby].KillPool {
+			delete(poolList.Maps, lobby)
+		}
+	}
 	newRoom := NewPool()
 	go Start(false, newRoom)
 	c.Pool = *&newRoom

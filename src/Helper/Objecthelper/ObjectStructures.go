@@ -24,7 +24,7 @@ type HighScore struct {
 }
 
 type UserStates struct {
-	Mu         sync.Mutex
+	Mu         sync.RWMutex
 	Userstates map[int]PlayerPosition
 }
 
@@ -33,11 +33,13 @@ type Pool struct {
 	UserLeave     chan *Client
 	Clients       ClientStct
 	Broadcast     chan ReturnMessage
-	TimeList      HighScore
+	TimeList      sync.Map
 	TimeListSet   chan HighScoreStruct
-	UserStateList UserStates
+	UserStateList sync.Map
 	UserStateSet  chan PlayerPosition
 	KillPool      bool
+	LobbyTime     uint64
+	LobbyData     LobbyData
 }
 type PlayerPosition struct {
 	Name      string `json:"PlayerName"`
@@ -63,8 +65,9 @@ type ClientMessage struct {
 }
 
 type AuthMessage struct {
-	Name string `json:"name"`
-	Skin string `json:"skinID"`
+	Name  string `json:"name"`
+	Token string `json:"token"`
+	Skin  string `json:"skinID"`
 }
 
 type HighScoreStruct struct {

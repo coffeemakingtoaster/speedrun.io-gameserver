@@ -29,7 +29,7 @@ func TestInvalidRouteError(t *testing.T) {
 	msgbdy = strings.TrimSpace(msgbdy)
 
 	//is response message correct?
-	if msgbdy != expected && msgbdy != "Error: Connection to the /ws part of the gameserver should only be via websockets" {
+	if msgbdy != expected {
 		t.Log(msgbdy)
 		t.Errorf("Http connections don´t get the appropriate response")
 	}

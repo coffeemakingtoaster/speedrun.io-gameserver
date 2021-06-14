@@ -15,3 +15,7 @@ func GenerateRoomID() string {
 	}
 	return string(id)
 }
+
+func AlterMap() string {
+	return ""
+}

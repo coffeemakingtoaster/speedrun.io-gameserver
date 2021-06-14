@@ -27,4 +27,12 @@ func TestValidateJWSToken(t *testing.T) {
 		fmt.Println(err)
 		t.Errorf("Invalid token should throw an error")
 	}
+
+	//Guests should always get validated
+	ok, err = ValidateJWSToken("", []byte("your-256-bit-secret"), "Guest123")
+	if err != nil || !ok {
+		fmt.Println(err)
+		t.Errorf("Invalid token should throw an error")
+	}
+
 }

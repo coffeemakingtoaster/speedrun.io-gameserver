@@ -66,7 +66,7 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Basic "+strings.ReplaceAll(string(secret), "\n", ""))
+	req.Header.Add("Authorization", "Basic "+strings.TrimSuffix(string(secret), "\n"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -88,7 +88,7 @@ func CloseLobby(lobby ObjectStructures.LobbyData) {
 	if err != nil {
 		ErrorHelper.OutputToConsole("Error", err.Error())
 	}
-	req.Header.Add("Authorization", "Basic "+strings.ReplaceAll(string(secret), "\n", ""))
+	req.Header.Add("Authorization", "Basic "+strings.TrimSuffix(string(secret), "\n"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

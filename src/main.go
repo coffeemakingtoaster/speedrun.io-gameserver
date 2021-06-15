@@ -22,8 +22,10 @@ import (
 var roomList PoolHelper.MapPool
 var tokenSecret []byte
 
+//handles incoming http requests over the websocket protocoll
 func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	var socketConn, err = SocketHelper.WsEndpoint(w, r)
+	//if connection was not http => give error
 	if err != nil {
 		ErrorHelper.ConnectionNotWebsocketError(w, r)
 		return
@@ -40,6 +42,7 @@ func handleWebsocketInput(w http.ResponseWriter, r *http.Request) {
 	//if validuser continue connection, else close socket
 	if ok, err := userHelper.ValidateJWSToken(parsedRequest.Token, tokenSecret, parsedRequest.Name); err == nil && ok {
 		ErrorHelper.OutputToConsole("Update", " valid Player with name "+parsedRequest.Name+"has connected ")
+		SocketHelper.Sender(socketConn, ObjectStructures.ReturnMessage{Type: 42, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: ([]ObjectStructures.PlayerPosition{}), ChatMessage: ""})
 		PoolHelper.InitInputHandler(socketConn, roomList, parsedRequest.Name)
 	} else {
 		socketConn.Close()
@@ -55,15 +58,20 @@ func setupRoutes(router *mux.Router) {
 }
 
 func main() {
+	//read very secret token
 	cont, err := ioutil.ReadFile("/cert/jwtSecret.txt")
 	if err != nil {
 		fmt.Println(err)
 	}
 	tokenSecret = []byte(cont)
 	router := mux.NewRouter()
+
+	//Create List of all active lobbies
 	roomList = PoolHelper.MapPool{Maps: make(map[string]ObjectStructures.Pool)}
 	newRoom := PoolHelper.NewPool()
 	go PoolHelper.Start(true, newRoom)
+
+	//open permanent room devtest
 	roomList.Maps["devTest"] = *newRoom
 	ErrorHelper.OutputToConsole("Update", "initializing server...")
 	setupRoutes(router)

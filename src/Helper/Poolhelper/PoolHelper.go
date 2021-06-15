@@ -155,6 +155,7 @@ func HandleInput(poolList MapPool, c *ObjectStructures.Client) {
 		//if player is not in room
 		if c.Pool == nil {
 			//create room if no roomID was passed
+			fmt.Println(decodedPayload)
 			if decodedPayload.LobbyData.ID == "" {
 				CreateRoom(c, poolList)
 
@@ -204,7 +205,7 @@ func CreateRoom(c *ObjectStructures.Client, poolList MapPool) {
 func GenerateMessage(payload []byte, c *ObjectStructures.Client) {
 	decodedPayload := ObjectStructures.ClientMessage{}
 	json.Unmarshal(payload, &decodedPayload)
-	fmt.Println(decodedPayload.PlayerPos)
+	//fmt.Println(decodedPayload.PlayerPos)
 	// 1 is reserver for join
 	// 2 => new Highscore
 	// 3 => new Player Position

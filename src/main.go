@@ -59,7 +59,7 @@ func setupRoutes(router *mux.Router) {
 
 func main() {
 	//read very secret token
-	cont, err := ioutil.ReadFile("/cert/jwtSecret.txt")
+	cont, err := ioutil.ReadFile("./cert/jwtSecret.txt")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -70,7 +70,11 @@ func main() {
 	roomList = PoolHelper.MapPool{Maps: make(map[string]ObjectStructures.Pool)}
 	newRoom := PoolHelper.NewPool()
 	go PoolHelper.Start(true, newRoom)
-
+	newRoom.LobbyData = ObjectStructures.LobbyData{
+		ID:        "devTest",
+		MapCode:   "dome",
+		LobbyName: "not considered",
+	}
 	//open permanent room devtest
 	roomList.Maps["devTest"] = *newRoom
 	ErrorHelper.OutputToConsole("Update", "initializing server...")

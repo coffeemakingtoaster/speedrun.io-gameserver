@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"strings"
 
@@ -32,7 +31,7 @@ func GetRandomMapFromApi() (string, error) {
 	return "resp.Request.Body.Read()", nil
 }
 
-func ReportLobbyChange(lobby ObjectStructures.LobbyData) {
+func ReportClientChange(lobby ObjectStructures.LobbyData) {
 	return
 }
 
@@ -102,11 +101,14 @@ func CloseLobby(lobby ObjectStructures.LobbyData) {
 }
 
 func getIP() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return ""
-	}
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String()
+	return "gameserver.speedrun.io"
+	/*
+		conn, err := net.Dial("udp", "8.8.8.8:80")
+		if err != nil {
+			return ""
+		}
+		defer conn.Close()
+		localAddr := conn.LocalAddr().(*net.UDPAddr)
+		return localAddr.IP.String()
+	*/
 }

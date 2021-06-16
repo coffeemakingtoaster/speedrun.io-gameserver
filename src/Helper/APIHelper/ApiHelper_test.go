@@ -1,12 +1,6 @@
 package ApiHelper
 
-import (
-	"net/http"
-	"testing"
-
-	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
-)
-
+/*
 func TestLobbyLifecycle(t *testing.T) {
 	ReportLobby(ObjectStructures.LobbyData{
 		ID:        "unittest",
@@ -35,3 +29,4 @@ func TestLobbyLifecycle(t *testing.T) {
 		t.Error("Lobby delete not working properly")
 	}
 }
+*/

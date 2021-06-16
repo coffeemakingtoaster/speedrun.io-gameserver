@@ -69,12 +69,11 @@ func createPositionList(pool *ObjectStructures.Pool) ObjectStructures.ReturnMess
 		currentPlayers = append(currentPlayers, value.(ObjectStructures.PlayerPosition))
 		return true
 	})
-	return ObjectStructures.ReturnMessage{Type: 3, LobbyData: (ObjectStructures.LobbyData{}), Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: currentPlayers, ChatMessage: ""}
+	return ObjectStructures.ReturnMessage{Type: 3, PlayerPos: currentPlayers, ChatMessage: ""}
 }
 
 //handles interaction with the pool
 func Start(isPermanent bool, pool *ObjectStructures.Pool) {
-	fmt.Println("started Lobby")
 	ApiHelper.ReportLobby(pool.LobbyData)
 	pool.LobbyTime = uint64(time.Now().Second()) + 600
 	go PoolUpdate(pool, isPermanent)
@@ -99,10 +98,9 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 				return true
 			})
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" joined")
-			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 4, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: currentPlayers, ChatMessage: ""})
-			fmt.Println("Send data to user")
+			SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 4, Highscore: currentHighscores, PlayerPos: currentPlayers})
 			for client, _ := range pool.Clients.Clients {
-				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User joined " + client.PlayerName + "!"})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}
 			break
 		case client := <-pool.UserLeave:
@@ -110,7 +108,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			pool.UserStateList.Delete(client.PlayerName)
 			ErrorHelper.OutputToConsole("Update", "User "+client.PlayerName+" left")
 			for c, _ := range pool.Clients.Clients {
-				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, LobbyData: (ObjectStructures.LobbyData{}), Highscore: []ObjectStructures.HighScoreStruct{}, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: "User left " + client.PlayerName + "!"})
+				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User left " + client.PlayerName + "!"})
 			}
 			break
 		case message := <-pool.Broadcast:
@@ -124,9 +122,8 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 				currentHighscores = append(currentHighscores, value.(ObjectStructures.HighScoreStruct))
 				return true
 			})
-			fmt.Println("Sending new Highscore list", currentHighscores)
 			for client, _ := range pool.Clients.Clients {
-				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, LobbyData: (ObjectStructures.LobbyData{}), Highscore: currentHighscores, PlayerPos: []ObjectStructures.PlayerPosition{}, ChatMessage: ""})
+				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, Highscore: currentHighscores})
 			}
 			break
 		case userToUpdate := <-pool.UserStateSet:

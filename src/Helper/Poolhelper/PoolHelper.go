@@ -53,11 +53,12 @@ func PoolUpdate(pool *ObjectStructures.Pool, isPermanent bool) {
 			if uint64(time.Now().Second()) >= pool.LobbyTime {
 				pool.LobbyData.MapCode = LobbyHelper.AlterMap()
 				pool.Broadcast <- ObjectStructures.ReturnMessage{Type: 1, LobbyData: pool.LobbyData, Highscore: ([]ObjectStructures.HighScoreStruct{}), PlayerPos: ([]ObjectStructures.PlayerPosition{}), ChatMessage: ""}
-				ApiHelper.ReportLobbyChange(pool.LobbyData)
+				ApiHelper.ReportMapChange(pool.LobbyData.MapCode, pool.LobbyData.ID)
 			}
 		*/
+
 		pool.Broadcast <- createPositionList(pool)
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(15 * time.Millisecond)
 		steps += 1
 	}
 
@@ -102,6 +103,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			for client, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}
+			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData.ID)
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients.Clients, client)
@@ -110,6 +112,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			for c, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User left " + client.PlayerName + "!"})
 			}
+			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData.ID)
 			break
 		case message := <-pool.Broadcast:
 			for client, _ := range pool.Clients.Clients {

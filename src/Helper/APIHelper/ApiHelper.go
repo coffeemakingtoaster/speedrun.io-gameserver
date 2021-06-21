@@ -21,6 +21,7 @@ type LobbyReport struct {
 	IP             string `json:"ip"`
 	Region         string `json:"region"`
 	MaxPlayerCount int    `json:"maxPlayerCount"`
+	PlayerCount    int    `json:"playerCount"`
 }
 
 func GetRandomMapFromApi() (string, error) {
@@ -31,15 +32,36 @@ func GetRandomMapFromApi() (string, error) {
 	return "resp.Request.Body.Read()", nil
 }
 
-func ReportClientChange(lobby ObjectStructures.LobbyData) {
-	return
+func ReportClientChange(playerCount int, LobbyID string) {
+	ReportLobbyChange(LobbyReport{PlayerCount: playerCount, ID: LobbyID})
+}
+
+func ReportMapChange(Mapslug string, LobbyID string) {
+	ReportLobbyChange(LobbyReport{MapCode: Mapslug, ID: LobbyID})
+}
+
+func ReportLobbyChange(data LobbyReport) {
+	ip := getIP()
+	if ip == "" {
+		ErrorHelper.OutputToConsole("Error", "No valid local IP found")
+	}
+
+	requestData, err := json.Marshal(data)
+	fmt.Println(string(requestData))
+	if err != nil {
+		ErrorHelper.OutputToConsole("Error", err.Error())
+	}
+
+	req, err := http.NewRequest("PATCH", apiUrl+"/v1/lobbies/"+data.ID, bytes.NewBuffer(requestData))
+	if err != nil {
+		ErrorHelper.OutputToConsole("Error", err.Error())
+	}
+
+	doRequest(req)
 }
 
 func ReportLobby(lobby ObjectStructures.LobbyData) {
-	secret, err := ioutil.ReadFile("./cert/apiSecret.txt")
-	if err != nil {
-		fmt.Println(err)
-	}
+
 	ip := getIP()
 	if ip == "" {
 		ErrorHelper.OutputToConsole("Error", "No valid local IP found")
@@ -50,7 +72,8 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 		LobbyName:      lobby.LobbyName,
 		IP:             ip,
 		Region:         "EUW",
-		MaxPlayerCount: 32,
+		MaxPlayerCount: 69,
+		PlayerCount:    0,
 	}
 
 	requestData, err := json.Marshal(data)
@@ -64,7 +87,19 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 		ErrorHelper.OutputToConsole("Error", err.Error())
 	}
 
-	req.Header.Add("Content-Type", "application/json")
+	doRequest(req)
+
+}
+
+func CloseLobby(lobby ObjectStructures.LobbyData) {
+	secret, err := ioutil.ReadFile("./cert/apiSecret.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	req, err := http.NewRequest("DELETE", apiUrl+"/v1/lobbies/"+lobby.ID, nil)
+	if err != nil {
+		ErrorHelper.OutputToConsole("Error", err.Error())
+	}
 	req.Header.Add("Authorization", "Basic "+strings.TrimSuffix(string(secret), "\n"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -78,15 +113,13 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 	fmt.Println(string(body))
 }
 
-func CloseLobby(lobby ObjectStructures.LobbyData) {
+//sends request to API
+func doRequest(req *http.Request) {
 	secret, err := ioutil.ReadFile("./cert/apiSecret.txt")
 	if err != nil {
 		fmt.Println(err)
 	}
-	req, err := http.NewRequest("DELETE", apiUrl+"/v1/lobbies/"+lobby.ID, nil)
-	if err != nil {
-		ErrorHelper.OutputToConsole("Error", err.Error())
-	}
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Basic "+strings.TrimSuffix(string(secret), "\n"))
 	client := &http.Client{}
 	resp, err := client.Do(req)

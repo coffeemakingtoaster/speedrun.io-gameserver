@@ -103,7 +103,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			for client, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User joined " + client.PlayerName + "!"})
 			}
-			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData.ID)
+			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData)
 			break
 		case client := <-pool.UserLeave:
 			delete(pool.Clients.Clients, client)
@@ -112,7 +112,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			for c, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(c.Conn, ObjectStructures.ReturnMessage{Type: 5, ChatMessage: "User left " + client.PlayerName + "!"})
 			}
-			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData.ID)
+			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData)
 			break
 		case message := <-pool.Broadcast:
 			for client, _ := range pool.Clients.Clients {

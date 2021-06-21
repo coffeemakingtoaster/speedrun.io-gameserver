@@ -32,12 +32,12 @@ func GetRandomMapFromApi() (string, error) {
 	return "resp.Request.Body.Read()", nil
 }
 
-func ReportClientChange(playerCount int, LobbyID string) {
-	ReportLobbyChange(LobbyReport{PlayerCount: playerCount, ID: LobbyID})
+func ReportClientChange(playerCount int, lobby ObjectStructures.LobbyData) {
+	ReportLobbyChange(LobbyReport{PlayerCount: playerCount, ID: lobby.ID, MapCode: lobby.MapCode, IP: getIP(), MaxPlayerCount: 69})
 }
 
-func ReportMapChange(Mapslug string, LobbyID string) {
-	ReportLobbyChange(LobbyReport{MapCode: Mapslug, ID: LobbyID})
+func ReportMapChange(lobby ObjectStructures.LobbyData) {
+	ReportLobbyChange(LobbyReport{MapCode: lobby.MapCode, ID: lobby.ID, IP: getIP(), MaxPlayerCount: 69})
 }
 
 func ReportLobbyChange(data LobbyReport) {

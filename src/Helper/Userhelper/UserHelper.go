@@ -17,7 +17,7 @@ func ValidateUser(uID string) bool {
 
 func ValidateJWSToken(Usertoken string, secretKey []byte, userName string) (bool, error) {
 	//Guests dont have a valid token
-	if len(Usertoken) >= 5 {
+	if len(userName) >= 5 {
 		if userName[:5] == "Guest" {
 			return true, nil
 		}

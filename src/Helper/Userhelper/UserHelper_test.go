@@ -25,14 +25,15 @@ func TestValidateJWSToken(t *testing.T) {
 	ok, err = ValidateJWSToken("eyJhbGciOiJIUzI1NiIsInR5cCI6kpXVCJ9.eyJ1c2VybmFtZSI6ImV4YW1wbGUifQ.3dVU1BrCRHDx6OEqc5K1KvpkuJvyf4j3u6_dOdnNFDM", []byte("your-256-bit-secret"), "example")
 	if err == nil || ok {
 		fmt.Println(err)
+		fmt.Println(ok)
 		t.Errorf("Invalid token should throw an error")
 	}
 
 	//Guests should always get validated
 	ok, err = ValidateJWSToken("", []byte("your-256-bit-secret"), "Guest123")
 	if err != nil || !ok {
-		fmt.Println(err)
-		t.Errorf("Invalid token should throw an error")
+		fmt.Println("Guest123"[:5])
+		t.Errorf("Guest should always be validated")
 	}
 
 }

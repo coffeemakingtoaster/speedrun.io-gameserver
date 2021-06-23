@@ -91,6 +91,7 @@ func ReportLobby(lobby ObjectStructures.LobbyData) {
 
 }
 
+//Send Delete request to server to delete lobby from masterserver
 func CloseLobby(lobby ObjectStructures.LobbyData) {
 	secret, err := ioutil.ReadFile("./cert/apiSecret.txt")
 	if err != nil {

@@ -17,10 +17,11 @@ func ValidateUser(uID string) bool {
 
 func ValidateJWSToken(Usertoken string, secretKey []byte, userName string) (bool, error) {
 	//Guests dont have a valid token
-	if userName[:5] == "Guest" {
-		return true, nil
+	if len(Usertoken) >= 5 {
+		if userName[:5] == "Guest" {
+			return true, nil
+		}
 	}
-
 	tokenData := &Claims{}
 	_, err := jwt.ParseWithClaims(Usertoken, tokenData, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil

@@ -1,5 +1,6 @@
 stages:
    - test
+   - docker build
 
 unit_tests:
   stage: test
@@ -7,3 +8,28 @@ unit_tests:
   script:
     - cd src
     - go test ./...
+
+build_docker:
+  script:
+    - docker build -t speedrunio/gameserver .
+
+  artifacts:
+    name: docker
+    expire_in: 3h
+
+  only:
+    - master
+
+
+build_golang:
+  script:
+    - cd src
+    - go build main.go
+
+  artifacts:
+    name: golang build
+    expire_in: 3h
+
+  only:
+    - master
+

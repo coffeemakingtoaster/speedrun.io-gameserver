@@ -85,9 +85,9 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			break
 		}
 		select {
+		//handle user joining
 		case client := <-pool.UserJoin:
 			pool.Clients.Clients[client] = true
-			// TODO: There is redundant code here that needs to be removed when refactoring
 			var currentHighscores []ObjectStructures.HighScoreStruct
 			pool.TimeList.Range(func(key, value interface{}) bool {
 				currentHighscores = append(currentHighscores, value.(ObjectStructures.HighScoreStruct))
@@ -105,6 +105,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			}
 			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData)
 			break
+		//handle user leaving
 		case client := <-pool.UserLeave:
 			delete(pool.Clients.Clients, client)
 			pool.UserStateList.Delete(client.PlayerName)
@@ -114,10 +115,12 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 			}
 			ApiHelper.ReportClientChange(len(pool.Clients.Clients), pool.LobbyData)
 			break
+		//broadcast messages to all connected clients
 		case message := <-pool.Broadcast:
 			for client, _ := range pool.Clients.Clients {
 				SocketHelper.Sender(client.Conn, message)
 			}
+		//update Highscore for User and inform clients
 		case userToUpdate := <-pool.TimeListSet:
 			pool.TimeList.Store(userToUpdate.PlayerName, userToUpdate)
 			var currentHighscores []ObjectStructures.HighScoreStruct
@@ -129,6 +132,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 				SocketHelper.Sender(client.Conn, ObjectStructures.ReturnMessage{Type: 2, Highscore: currentHighscores})
 			}
 			break
+		//update Player position list. Is send to clients once the watcher ticks
 		case userToUpdate := <-pool.UserStateSet:
 			pool.UserStateList.Store(userToUpdate.Name, userToUpdate)
 			break
@@ -136,6 +140,7 @@ func Start(isPermanent bool, pool *ObjectStructures.Pool) {
 	}
 }
 
+//Handle a clients connection and all its packages.
 func HandleInput(poolList MapPool, c *ObjectStructures.Client) {
 
 	defer func() {
@@ -171,11 +176,12 @@ func HandleInput(poolList MapPool, c *ObjectStructures.Client) {
 				}
 			}
 		} else {
-			GenerateMessage(p, c)
+			HandleClientPackage(p, c)
 		}
 	}
 }
 
+//Create new Lobby
 func CreateRoom(c *ObjectStructures.Client, poolList MapPool) {
 	poolList.Mu.Lock()
 	//as this locks the Map I will also check for deleted lobbies here
@@ -202,7 +208,8 @@ func CreateRoom(c *ObjectStructures.Client, poolList MapPool) {
 	defer poolList.Mu.Unlock()
 }
 
-func GenerateMessage(payload []byte, c *ObjectStructures.Client) {
+//Handle Userpackage payload
+func HandleClientPackage(payload []byte, c *ObjectStructures.Client) {
 	decodedPayload := ObjectStructures.ClientMessage{}
 	json.Unmarshal(payload, &decodedPayload)
 	//fmt.Println(decodedPayload.PlayerPos)
@@ -226,15 +233,13 @@ func GenerateMessage(payload []byte, c *ObjectStructures.Client) {
 	}
 }
 
+// Pass validated connection and generate client struct for representation
 func InitInputHandler(conn *websocket.Conn, m MapPool, username string) {
-
-	//TODO set UserID => check if it is ever needed
 	c := &ObjectStructures.Client{
 		PlayerName: username,
 		ID:         "1234",
 		Conn:       conn,
 		Pool:       nil,
 	}
-	//SocketHelper.Sender(c.Conn, ObjectStructures.Message{Type: 1, Data: []string{"credentials confirmed"}})
 	HandleInput(m, c)
 }

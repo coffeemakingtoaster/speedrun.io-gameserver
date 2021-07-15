@@ -6,15 +6,14 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+//JWT struct
 type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
 }
 
-func ValidateUser(uID string) bool {
-	return true
-}
-
+//Validate Usertoken by their token as well as their send username
+//Check if identities match
 func ValidateJWSToken(Usertoken string, secretKey []byte, userName string) (bool, error) {
 	//Guests dont have a valid token
 	if len(userName) >= 5 {
@@ -30,7 +29,7 @@ func ValidateJWSToken(Usertoken string, secretKey []byte, userName string) (bool
 		return false, err
 	}
 	if tokenData.Username != userName {
-		return false, errors.New("Usernames do not match")
+		return false, errors.New("usernames do not match")
 	}
 	return true, nil
 }

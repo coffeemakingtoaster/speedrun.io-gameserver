@@ -10,6 +10,7 @@ unit_tests:
     - go test ./...
 
 build_docker:
+  image: golang:1.16-alpine
   script:
     - docker build -t speedrunio/gameserver .
 
@@ -22,6 +23,7 @@ build_docker:
 
 
 build_golang:
+  image: golang:1.16-alpine
   script:
     - cd src
     - go build main.go

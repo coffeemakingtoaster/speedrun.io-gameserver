@@ -14,6 +14,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+//Upgrade http to websocket connection
 func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
@@ -23,13 +24,12 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error)
 	if err != nil {
 		return nil, errors.New("Something went wrong")
 	}
-	// helpful log statement to show connections
 	return ws, nil
 
 }
 
+//Send data to passed connection
 func Sender(conn *websocket.Conn, message ObjectStructures.ReturnMessage) error {
-	//m, err := json.Marshal(payload)
 	err := conn.WriteJSON(message)
 	if err != nil {
 		return err

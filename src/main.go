@@ -84,38 +84,3 @@ func main() {
 	//log.Println(http.ListenAndServe(":8080", handlers.CORS(corsObj)(router)))
 	log.Println(http.ListenAndServeTLS(":443", "./cert/certificate.pem", "./cert/key.pem", handlers.CORS(corsObj)(router)))
 }
-
-/*
-auth package: name, skin
-
-type: 1 - join
-      2 - just new Highscore
-      3 - just new pos
-      4 - new chat
-      5 - all
-
-
-Highscore: highscore: integer
-	==> name will be attached by server based on name attached to connection
-
-NewPlayerPos: {
-		name: null (will be included by server)
-		x: int
-		y: int
-		xVel: int
-		yVel: int
-		isDashing: bool
-	} => server appends the name itself based on name attached to connection
-
-
-ChatMessage : string => if starts with / and user is dev ==> command
-
-
-
-so: ClientMessage = {
-	type: int
-	highscore: int/null
-	PlayerPosUpdate: object NewPlayerPos/null
-	Chatmessage: string/null
-	}
-*/

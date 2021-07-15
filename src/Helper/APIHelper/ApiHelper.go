@@ -28,24 +28,17 @@ func setApiURL(url string) {
 	apiUrl = url
 }
 
-/*
-func GetRandomMapFromApi() (string, error) {
-	_, err := http.Get("https://api.speedrun.io")
-	if err != nil {
-		return "", err
-	}
-	return "resp.Request.Body.Read()", nil
-}
-*/
-
+//Generate report struct for player count change
 func ReportClientChange(playerCount int, lobby ObjectStructures.LobbyData) LobbyReport {
 	return ReportLobbyChange(LobbyReport{PlayerCount: playerCount, ID: lobby.ID, MapCode: lobby.MapCode, IP: getIP(), MaxPlayerCount: 69})
 }
 
+//Generate report struct for mapchange
 func ReportMapChange(lobby ObjectStructures.LobbyData) LobbyReport {
 	return ReportLobbyChange(LobbyReport{MapCode: lobby.MapCode, ID: lobby.ID, IP: getIP(), MaxPlayerCount: 69})
 }
 
+//Report changed data to Masterserver
 func ReportLobbyChange(data LobbyReport) LobbyReport {
 	ip := getIP()
 	if ip == "" {
@@ -63,10 +56,12 @@ func ReportLobbyChange(data LobbyReport) LobbyReport {
 		ErrorHelper.OutputToConsole("Error", err.Error())
 	}
 
+	//send request to API
 	doRequest(req)
 	return data
 }
 
+//Report the creation of a lobby alongside it´s metadata
 func ReportLobby(lobby ObjectStructures.LobbyData) LobbyReport {
 
 	ip := getIP()
@@ -150,7 +145,12 @@ func doRequest(req *http.Request) {
 	fmt.Println(string(body))
 }
 
+//get the IP of the current system to send it to the masterserver
 func getIP() string {
+	//this is a terrible solution. Yet I have not found an efficient way to
+	//get the domain of a server. However for the time being this works just fine as
+	//there currently is only one gameserver
+	//Without a domain the TLS certificate does not work
 	return "gameserver.speedrun.io"
 	/*
 		conn, err := net.Dial("udp", "8.8.8.8:80")

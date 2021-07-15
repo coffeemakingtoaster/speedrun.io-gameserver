@@ -7,31 +7,26 @@ import (
 	"github.com/fatih/color"
 )
 
+//Raise Error and send to client
 func InvalidRouteError(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 	fmt.Fprintf(w, "Invalid Route. If you are trying to reach the game API please interact with api.speedrun.io")
 }
 
+//Raise Error and send to client
 func ConnectionNotWebsocketError(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 	fmt.Fprintf(w, "Error: Connection to the /ws part of the gameserver should only be via websockets")
 }
 
+//Raise Error and send to client
 func InvalidRequestError(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 	fmt.Fprintf(w, "Error: The request is invalid in this context")
 }
 
-/*
-func InvalidRoomIDError(conn *websocket.Conn) {
-		err := SocketHelper.Sender(conn, ObjectStructures.Message{Type: 0, Data: []string{"Error! Invalid room code"}})
-		if err != nil {
-			OutputToConsole("Error", "Message could not be send")
-		}
-	OutputToConsole("Error", "Invalid room ID provided")
-}
-*/
-
+//Used for a formatted and colored output to console.
+//this improves visibility
 func OutputToConsole(mode string, message string) {
 	c := color.New(color.FgWhite)
 	if mode == "Error" {

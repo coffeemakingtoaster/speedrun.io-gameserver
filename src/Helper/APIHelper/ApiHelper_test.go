@@ -6,8 +6,6 @@ import (
 	ObjectStructures "gameserver.speedrun.io/Helper/Objecthelper"
 )
 
-// Do is the mock client's `Do` func
-
 func TestReportLobby(t *testing.T) {
 	setApiURL("")
 	data := ReportLobby(ObjectStructures.LobbyData{
